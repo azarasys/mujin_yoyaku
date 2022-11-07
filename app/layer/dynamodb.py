@@ -1,7 +1,12 @@
 import boto3
 import os
+import uuid
+import logging
 from datetime import datetime, date, timedelta
 from boto3 import Key
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO())
 
 # 環境変数
 DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
@@ -22,6 +27,7 @@ KEY_RESERVE_SERVICE_ID = 'ReserveServiceId'
 KEY_RESERVE_DATE = 'ReserveDate'
 KEY_RESERVE_START = 'ReserveStart'
 KEY_RESERVE_END = 'ReserveEnd'
+KEY_ACTIVE = 'Active'
 
 dynamodb = boto3.resource('dynamodb')
 
@@ -167,3 +173,81 @@ def get_reserves_by_service_time(service_id: str, start_timestamp: int, end_time
         if all([start_dt <= int(reserve[KEY_RESERVE_START]), end_dt >= int(reserve[KEY_RESERVE_END])]):
             target_reserve.append(reserve)
     return target_reserve
+
+def get_active_false_ids() -> list[str]:
+    '''非活性データのIDをすべて取得する
+    '''
+    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+    options = {
+        'IndexName': GSI1_INDEX_NAME,
+        'KeyConditionExpression': Key(DYNAMODB_GSI1_PARTITION_KEY_COLUMN).eq(str(False)) & Key(DYNAMODB_GSI1_SORT_KEY_COLUMN).eq(KEY_ACTIVE)
+    }
+    res = table.query(**options)
+    return [item[DYNAMODB_PARTITION_KEY_COLUMN] for item in res['Items']]
+
+def put_data(dynamodb_table_name:str, data: dict):
+    '''データを追加する
+    '''
+    # 識別子をここで入れる
+    id = str(uuid.uuid4())
+    items = [
+        {
+            DYNAMODB_PARTITION_KEY_COLUMN: {'S': id},
+            DYNAMODB_SORT_KEY_COLUMN: {'S': key},
+            DYNAMODB_GSI1_PARTITION_KEY_COLUMN: {'S': str(value)}
+        } for key, value in data.items()
+    ]
+    client = boto3.client('dynamodb')
+    transact_items = [{'Put': {'TableName': dynamodb_table_name, 'Item': item}} for item in items]
+    try:
+        res = client.transact_write_items(RequesTransactItemstItems=transact_items)
+    except Exception as e:
+        print(f'Could not writed data: {e}')
+        return False
+    print(f'Put: {id}')
+    return True
+
+def delete_id_data(id: str) -> bool:
+    '''データを削除する
+    '''
+    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+    items = get_data_by_partition_key(
+        dynamodb_table_name=DYNAMODB_TABLE_NAME,
+        partition_key_column=DYNAMODB_PARTITION_KEY_COLUMN,
+        partition_key_value=id
+    )
+    try:
+        with table.batch_writer() as batch:
+            for item in items:
+                table.delete_item(Key={
+                    DYNAMODB_PARTITION_KEY_COLUMN: item[DYNAMODB_PARTITION_KEY_COLUMN],
+                    DYNAMODB_SORT_KEY_COLUMN: item[DYNAMODB_SORT_KEY_COLUMN]
+                })
+    except Exception as r:
+        print(f'Could not delete: {id}')
+        return False
+    print(f'Delete: {id}')
+    return True
+
+def delete_active_false():
+    '''非活性データを全て削除する
+    '''
+    for id in get_active_false_ids():
+        delete_id_data(id)
+    
+def update_active_false(id: str) -> bool:
+    '''データを非活性にする
+    '''
+    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+    item = {
+        DYNAMODB_PARTITION_KEY_COLUMN: id,
+        DYNAMODB_SORT_KEY_COLUMN: KEY_ACTIVE,
+        DYNAMODB_GSI1_PARTITION_KEY_COLUMN: str(False)
+    }
+    try:
+        res = table.put_item(Item=item)
+    except Exception as e:
+        print(f'Could not update active: {id}')
+        return False
+    print(f'Update active: {id}')
+    return True
