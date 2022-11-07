@@ -69,7 +69,7 @@ def get_user_by_email(email: str) -> dict:
     )
     return get_user_by_id(user_id)
 
-def get_users_by_service_id(service_id: str -> list[dict]):
+def get_users_by_service_id(service_id: str) -> list[dict]:
     '''サービスIDでユーザ情報取得
     '''
     table = dynamodb.Table(DYNAMODB_TABLE_NAME)
