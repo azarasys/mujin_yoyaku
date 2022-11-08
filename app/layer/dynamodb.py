@@ -49,7 +49,7 @@ def get_data_by_pk_sk(table_name:str, pk_column: str, pk_value: str, sk_column: 
     res = table.query(**options)
     return res['Items'][0]
 
-def get_data_by_pk_sk_beginwith(table_name:str, pk_column: str, pk_value: str, sk_column: str, sk_value: str, index: str=None):
+def get_data_by_pk_sk_beginwith(table_name:str, pk_column: str, pk_value: str, sk_column: str, sk_value: str, index: str=None) -> list[dict]:
     '''PKのSKで開始する情報を複数取得
     '''
     table = dynamodb.Table(table_name)
@@ -137,17 +137,18 @@ def get_user_by_email(email: str) -> dict:
         index=GSI1_INDEX_NAME
     )
 
-def get_reserves_by_user(user_id: str) -> dict:
+def get_reserves_by_user(service_id: str, user_id: str) -> list[dict]:
     '''ユーザの全予約情報取得
     '''
     return get_data_by_pk(
         table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_GSI1_PK_COLUMN,
-        pk_value=f'{KEY_PREFIX_RESERVE}_{user_id}',
-        index=GSI1_INDEX_NAME
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=service_id,
+        pk_column=DYNAMODB_SK_COLUMN,
+        pk_value=f'{KEY_PREFIX_RESERVE}_{user_id}'
     )
 
-def put_data(table_name:str, item: dict):
+def put_data(table_name:str, item: dict) -> bool:
     '''データを追加する
     '''
     table = dynamodb.Table(table_name)
