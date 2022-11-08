@@ -1,251 +1,215 @@
 import boto3
 import os
-import uuid
 import logging
-from datetime import datetime, date, timedelta
-from boto3 import Key
+from boto3.dynamodb.conditions import Key
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO())
 
 # 環境変数
 DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
-DYNAMODB_PARTITION_KEY_COLUMN = os.environ['DYNAMODB_PARTITION_KEY_COLUMN']
-DYNAMODB_SORT_KEY_COLUMN = os.environ['DYNAMODB_SORT_KEY_COLUMN']
-DYNAMODB_GSI1_PARTITION_KEY_COLUMN = os.environ['DYNAMODB_GSI1_PARTITION_KEY_COLUMN']
-DYNAMODB_GSI1_SORT_KEY_COLUMN = os.environ['DYNAMODB_GSI1_SORT_KEY_COLUMN']
-DYNAMODB_GSI2_PARTITION_KEY_COLUMN = os.environ['DYNAMODB_GSI2_PARTITION_KEY_COLUMN']
-DYNAMODB_GSI2_SORT_KEY_COLUMN = os.environ['DYNAMODB_GSI2_SORT_KEY_COLUMN']
+DYNAMODB_PK_COLUMN = os.environ['DYNAMODB_PK_COLUMN']
+DYNAMODB_SK_COLUMN = os.environ['DYNAMODB_SK_COLUMN']
+DYNAMODB_GSI1_PK_COLUMN = os.environ['DYNAMODB_GSI1_PK_COLUMN']
+DYNAMODB_LSI1_SK_COLUMN = os.environ['DYNAMODB_LSI1_SK_COLUMN']
 GSI1_INDEX_NAME = os.environ['GSI1_INDEX_NAME']
-GSI2_INDEX_NAME = os.environ['GSI2_INDEX_NAME']
+LSI1_INDEX_NAME = os.environ['LSI1_INDEX_NAME']
 
 # 固定値
-KEY_USER_SERVICE_ID = 'UserServiceId'
-KEY_DEVICE_SERVICE_ID = 'DeviceServiceId'
-KEY_RESERVE_USER_ID = 'ReserveServiceId'
-KEY_RESERVE_SERVICE_ID = 'ReserveServiceId'
-KEY_RESERVE_DATE = 'ReserveDate'
-KEY_RESERVE_START = 'ReserveStart'
-KEY_RESERVE_END = 'ReserveEnd'
-KEY_ACTIVE = 'Active'
+KEY_PREFIX_SERVICE = 'Service'
+KEY_PREFIX_USER = 'User'
+KEY_PREFIX_RESERVE = 'Reserve'
+KEY_PREFIX_DEVICE = 'Device'
+KEY_PREFIX_DATE = 'Date'
+DATE_FORMAT = '%Y-%m-%d'
 
 dynamodb = boto3.resource('dynamodb')
 
-def get_data_by_partition_key(dynamodb_table_name:str, partition_key_column: str, partition_key_value: str) -> dict:
-    table = dynamodb.Table(dynamodb_table_name)
-    options = {
-        'KeyConditionExpression': Key(partition_key_column).eq(partition_key_value)
-    }
-    res = table.query(**options)
-    return {item['DataType']['S']: item['DataValue']['S'] for item in res['Items']}
-
-def get_id_by_partition_key(dynamodb_table_name:str, partition_key_column: str, partition_key_value: str, index_name: str='') -> str:
-    table = dynamodb.Table(dynamodb_table_name)
-    options = {
-        'KeyConditionExpression': Key(partition_key_column).eq(partition_key_value)
-    }
-    if index_name:
-        options['IndexName'] = index_name
-    res = table.query(**options)
-    return res['Items'][0][DYNAMODB_PARTITION_KEY_COLUMN]
-
-def get_user_by_id(user_id: str) -> dict:
-    '''ユーザIDでユーザ情報取得
+def get_data_by_pk(table_name:str, pk_column: str, pk_value: str, index: str=None) -> dict:
+    '''PKによる情報取得
     '''
-    return get_data_by_partition_key(
-        dynamodb_table_name=DYNAMODB_TABLE_NAME,
-        partition_key_column=DYNAMODB_PARTITION_KEY_COLUMN,
-        partition_key_value=user_id
+    table = dynamodb.Table(table_name)
+    options = {
+        'KeyConditionExpression': Key(pk_column).eq(pk_value)
+    }
+    if index:
+        options['Index'] = index
+    res = table.query(**options)
+    return res['Items'][0]
+
+def get_data_by_pk_sk(table_name:str, pk_column: str, pk_value: str, sk_column: str, sk_value: str, index: str=None) -> dict:
+    '''PKとSKによる情報取得
+    '''
+    table = dynamodb.Table(table_name)
+    options = {
+        'KeyConditionExpression': Key(pk_column).eq(pk_value) & Key(sk_column).eq(sk_value)
+    }
+    if index:
+        options['Index'] = index
+    res = table.query(**options)
+    return res['Items'][0]
+
+def get_data_by_pk_sk_beginwith(table_name:str, pk_column: str, pk_value: str, sk_column: str, sk_value: str, index: str=None):
+    '''PKのSKで開始する情報を複数取得
+    '''
+    table = dynamodb.Table(table_name)
+    options = {
+        'KeyConditionExpression': Key(pk_column).eq(pk_value) & Key(sk_column).begins_with(sk_value)
+    }
+    if index:
+        options['Index'] = index
+    res = table.query(**options)
+    return res['Items']
+
+def get_service_by_email(email: str) -> dict:
+    '''メールアドレスでサービス情報取得
+    '''
+    return get_data_by_pk(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_GSI1_PK_COLUMN,
+        pk_value=f'{KEY_PREFIX_SERVICE}_{email}',
+        index=GSI1_INDEX_NAME
+    )
+
+def get_users_by_service(service_id: str) -> list[dict]:
+    '''サービス内の全ユーザ情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=service_id,
+        sk_column=DYNAMODB_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_USER}_'
+    )
+
+def get_reserves_by_service(service_id: str) -> list[dict]:
+    '''サービス内の全予約情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=service_id,
+        sk_column=DYNAMODB_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_RESERVE}_'
+    )
+
+def get_reserves_by_service_date(service_id: str, date_str: str) -> list[dict]:
+    '''サービス内の特定の日付の予約情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=service_id,
+        sk_column=DYNAMODB_LSI1_SK_COLUMN,
+        sk_value=date_str,
+        index=LSI1_INDEX_NAME
+    )
+
+def get_devices_by_service(service_id: str) -> list[dict]:
+    '''サービス内の全デバイス情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=service_id,
+        sk_column=DYNAMODB_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_DEVICE}_'
+    )
+
+def get_devices_by_service_type(service_id: str, device_type: str) -> list[dict]:
+    '''サービス内の特定の種類の全デバイス情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=service_id,
+        sk_column=DYNAMODB_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_DEVICE}_{device_type}_'
     )
 
 def get_user_by_email(email: str) -> dict:
     '''メールアドレスでユーザ情報取得
     '''
-    user_id = get_id_by_partition_key(
-        dynamodb_table_name=DYNAMODB_TABLE_NAME,
-        partition_key_column=DYNAMODB_GSI1_PARTITION_KEY_COLUMN,
-        partition_key_value=email,
-        index_name=GSI1_INDEX_NAME
-    )
-    return get_user_by_id(user_id)
-
-def get_users_by_service_id(service_id: str) -> list[dict]:
-    '''サービスIDでユーザ情報取得
-    '''
-    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-    options = {
-        'IndexName': GSI1_INDEX_NAME,
-        'KeyConditionExpression': Key(DYNAMODB_GSI1_PARTITION_KEY_COLUMN).eq(service_id) & Key(DYNAMODB_GSI1_SORT_KEY_COLUMN).eq(KEY_USER_SERVICE_ID)
-    }
-    res = table.query(**options)
-    return [get_user_by_id(item[DYNAMODB_PARTITION_KEY_COLUMN]) for item in res['Items']]
-
-def get_service_by_id(service_id: str) -> dict:
-    '''サービスIDでサービス情報取得
-    '''
-    return get_data_by_partition_key(DYNAMODB_TABLE_NAME, DYNAMODB_PARTITION_KEY_COLUMN, service_id)
-
-def get_service_by_user_id(user_id: str) -> dict:
-    '''ユーザIDでサービス情報取得
-    '''
-    user = get_user_by_id(user_id)
-    return get_service_by_id(user[KEY_USER_SERVICE_ID])
-
-def get_device_by_device_id(device_id: str) -> dict:
-    '''デバイスIDでデバイス情報取得
-    '''
-    return get_data_by_partition_key(
-        dynamodb_table_name=DYNAMODB_TABLE_NAME,
-        partition_key_column=DYNAMODB_PARTITION_KEY_COLUMN,
-        partition_key_value=device_id
+    return get_data_by_pk(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_GSI1_PK_COLUMN,
+        pk_value=f'{KEY_PREFIX_USER}_{email}',
+        index=GSI1_INDEX_NAME
     )
 
-def get_devices_by_service_id(service_id: str) -> list[dict]:
-    '''デバイスIDでデバイス情報取得
+def get_reserves_by_user(user_id: str) -> dict:
+    '''ユーザの全予約情報取得
     '''
-    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-    options = {
-        'IndexName': GSI1_INDEX_NAME,
-        'KeyConditionExpression': Key(DYNAMODB_GSI1_PARTITION_KEY_COLUMN).eq(service_id) & Key(DYNAMODB_GSI1_SORT_KEY_COLUMN).eq(KEY_DEVICE_SERVICE_ID)
-    }
-    res = table.query(**options)
-    return [get_device_by_device_id(item[DYNAMODB_PARTITION_KEY_COLUMN]) for item in res['Items']]
-
-def get_reserve_by_id(reserve_id: str) -> dict:
-    '''予約IDで予約情報取得
-    '''
-    return get_data_by_partition_key(
-        dynamodb_table_name=DYNAMODB_TABLE_NAME,
-        partition_key_column=DYNAMODB_PARTITION_KEY_COLUMN,
-        partition_key_value=reserve_id
+    return get_data_by_pk(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_GSI1_PK_COLUMN,
+        pk_value=f'{KEY_PREFIX_RESERVE}_{user_id}',
+        index=GSI1_INDEX_NAME
     )
 
-def get_reserves_by_user_id(user_id: str) -> list[dict]:
-    '''ユーザIDで予約情報取得
-    '''
-    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-    options = {
-        'IndexName': GSI1_INDEX_NAME,
-        'KeyConditionExpression': Key(DYNAMODB_GSI1_PARTITION_KEY_COLUMN).eq(user_id) & Key(DYNAMODB_GSI1_SORT_KEY_COLUMN).eq(KEY_RESERVE_USER_ID)
-    }
-    res = table.query(**options)
-    # ユーザは複数予約することはできないので
-    return get_reserve_by_id(res['Items'][0][DYNAMODB_PARTITION_KEY_COLUMN])
-
-def get_reserves_by_service(service_id: str) -> list[dict]:
-    '''サービスIDで全ての予約情報取得
-    '''
-    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-    options = {
-        'IndexName': GSI1_INDEX_NAME,
-        'KeyConditionExpression': Key(DYNAMODB_GSI1_PARTITION_KEY_COLUMN).eq(service_id) & Key(DYNAMODB_GSI1_SORT_KEY_COLUMN).eq(KEY_RESERVE_SERVICE_ID)
-    }
-    res = table.query(**options)
-    return [get_reserve_by_id(item[DYNAMODB_PARTITION_KEY_COLUMN]) for item in res['Items']]
-
-def get_reserves_by_service_date(service_id: str, date_str: str) -> list[dict]:
-    '''日付で予約情報取得
-    '''
-    reserves = get_reserves_by_service(service_id)
-    return [reserve for reserve in reserves if reserve[KEY_RESERVE_DATE] == date_str]
-
-def get_reserves_by_service_date_period(service_id: str, start_date_str: str, end_date_str: str) -> list[dict]:
-    '''日付の期間で予約情報取得
-    '''
-    reserves = get_reserves_by_service(service_id)
-    target_reserve = []
-    for reserve in reserves:
-        start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
-        end_dt = datetime.strptime(end_date_str, '%Y-%m-%d')
-        target_dt = datetime.strptime(reserve[KEY_RESERVE_DATE], '%Y-%m-%d')
-        if start_dt <= target_dt <= end_dt:
-            target_reserve.append(reserve)
-    return target_reserve
-
-def get_reserves_by_service_time(service_id: str, start_timestamp: int, end_timestamp: int):
-    '''時間帯で予約情報取得
-    '''
-    reserves = get_reserves_by_service(service_id)
-    target_reserve = []
-    for reserve in reserves:
-        start_dt = datetime.fromtimestamp(start_timestamp)
-        end_dt = datetime.strptime(end_timestamp)
-        if all([start_dt <= int(reserve[KEY_RESERVE_START]), end_dt >= int(reserve[KEY_RESERVE_END])]):
-            target_reserve.append(reserve)
-    return target_reserve
-
-def get_active_false_ids() -> list[str]:
-    '''非活性データのIDをすべて取得する
-    '''
-    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-    options = {
-        'IndexName': GSI1_INDEX_NAME,
-        'KeyConditionExpression': Key(DYNAMODB_GSI1_PARTITION_KEY_COLUMN).eq(str(False)) & Key(DYNAMODB_GSI1_SORT_KEY_COLUMN).eq(KEY_ACTIVE)
-    }
-    res = table.query(**options)
-    return [item[DYNAMODB_PARTITION_KEY_COLUMN] for item in res['Items']]
-
-def put_data(dynamodb_table_name:str, data: dict):
+def put_data(table_name:str, item: dict):
     '''データを追加する
     '''
-    # 識別子をここで入れる
-    id = str(uuid.uuid4())
-    items = [
-        {
-            DYNAMODB_PARTITION_KEY_COLUMN: {'S': id},
-            DYNAMODB_SORT_KEY_COLUMN: {'S': key},
-            DYNAMODB_GSI1_PARTITION_KEY_COLUMN: {'S': str(value)}
-        } for key, value in data.items()
-    ]
-    client = boto3.client('dynamodb')
-    transact_items = [{'Put': {'TableName': dynamodb_table_name, 'Item': item}} for item in items]
+    table = dynamodb.Table(table_name)
     try:
-        res = client.transact_write_items(RequesTransactItemstItems=transact_items)
+        res = table.put_item(Item=item)
     except Exception as e:
         print(f'Could not writed data: {e}')
         return False
     print(f'Put: {id}')
     return True
 
-def delete_id_data(id: str) -> bool:
-    '''データを削除する
+def delete_id_data(service_id: str, key: str) -> bool:
+    '''サービス内の特定データを削除する
     '''
     table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-    items = get_data_by_partition_key(
-        dynamodb_table_name=DYNAMODB_TABLE_NAME,
-        partition_key_column=DYNAMODB_PARTITION_KEY_COLUMN,
-        partition_key_value=id
-    )
+    options = {
+        'Key': {DYNAMODB_PK_COLUMN: service_id, DYNAMODB_SK_COLUMN: key},
+    }
     try:
-        with table.batch_writer() as batch:
-            for item in items:
-                table.delete_item(Key={
-                    DYNAMODB_PARTITION_KEY_COLUMN: item[DYNAMODB_PARTITION_KEY_COLUMN],
-                    DYNAMODB_SORT_KEY_COLUMN: item[DYNAMODB_SORT_KEY_COLUMN]
-                })
+        res = table.delete_item(**options)
     except Exception as r:
         print(f'Could not delete: {id}')
         return False
     print(f'Delete: {id}')
     return True
 
-def delete_active_false():
-    '''非活性データを全て削除する
+def delete_user(service_id: str, user_id: str):
+    '''サービス内のユーザを削除する
     '''
-    for id in get_active_false_ids():
-        delete_id_data(id)
-    
-def update_active_false(id: str) -> bool:
-    '''データを非活性にする
+    delete_id_data(
+        service_id=service_id,
+        key=f'{KEY_PREFIX_USER}_{user_id}'
+    )
+
+def delete_reserve(service_id: str, user_id: str, reserve_id: str):
+    '''サービス内の予約を削除する
+    '''
+    delete_id_data(
+        service_id=service_id,
+        key=f'{KEY_PREFIX_RESERVE}_{user_id}_{reserve_id}'
+    )
+
+def delete_device(service_id: str, device_type: str, device_id: str):
+    '''サービス内のデバイスを削除する
+    '''
+    delete_id_data(
+        service_id=service_id,
+        key=f'{KEY_PREFIX_DEVICE}_{device_type}_{device_id}'
+    )
+
+def update_active_false(service_id:str, key: str) -> bool:
+    '''データを活性フラグをオフにする
     '''
     table = dynamodb.Table(DYNAMODB_TABLE_NAME)
-    item = {
-        DYNAMODB_PARTITION_KEY_COLUMN: id,
-        DYNAMODB_SORT_KEY_COLUMN: KEY_ACTIVE,
-        DYNAMODB_GSI1_PARTITION_KEY_COLUMN: str(False)
+    options = {
+        'Key': {DYNAMODB_PK_COLUMN: service_id, DYNAMODB_SK_COLUMN: key},
+        'UpdateExpression': 'set active = :active',
+        'ExpressionAttributeValues': {':active': False},
+        'ReturnValues': 'UPDATED_NEW'
     }
     try:
-        res = table.put_item(Item=item)
+        res = table.update_item(**options)
     except Exception as e:
         print(f'Could not update active: {id}')
         return False
