@@ -18,6 +18,7 @@ def get_secret(secret_name: str):
         response = client.get_secret_value(SecretId=secret_name)
     except ClientError as e:
         print(f'Couldnt fetch secret {secret_name}: {e}')
+        raise e
     else:
         print(f'Get secrets {secret_name}')
         if 'SecretString' in response:
@@ -38,6 +39,7 @@ def create_secret(secret_name: str, secret_value: dict):
         )
     except ClientError as e:
         print(f'Couldnt get secret {secret_name}: {e}')
+        raise e
     else:
         print(f'Created secret {secret_name}.')
 
@@ -53,6 +55,7 @@ def update_secret(secret_name: str, secret_value: str):
         )
     except ClientError as e:
         print(f'Couldnt upgrade secret {secret_name}: {e}')
+        raise e
     else:
         print(f'Updated secret {secret_name}.')
 
@@ -68,5 +71,6 @@ def delete_secret(secret_name: str):
         )
     except ClientError as e:
         print(f'Couldnt delete secret {secret_name}: {e}')
+        raise e
     else:
         print(f'Deleted secret {secret_name}.')
