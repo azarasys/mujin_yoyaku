@@ -12,7 +12,10 @@ DYNAMODB_PK_COLUMN = os.environ['DYNAMODB_PK_COLUMN']
 DYNAMODB_SK_COLUMN = os.environ['DYNAMODB_SK_COLUMN']
 DYNAMODB_GSI1_PK_COLUMN = os.environ['DYNAMODB_GSI1_PK_COLUMN']
 DYNAMODB_LSI1_SK_COLUMN = os.environ['DYNAMODB_LSI1_SK_COLUMN']
+DYNAMODB_GSI2_PK_COLUMN = os.environ['DYNAMODB_GSI2_PK_COLUMN']
+DYNAMODB_GSI2_SK_COLUMN = os.environ['DYNAMODB_GSI2_SK_COLUMN']
 GSI1_INDEX_NAME = os.environ['GSI1_INDEX_NAME']
+GSI2_INDEX_NAME = os.environ['GSI2_INDEX_NAME']
 LSI1_INDEX_NAME = os.environ['LSI1_INDEX_NAME']
 
 # 固定値
@@ -60,6 +63,26 @@ def get_data_by_pk_sk_beginwith(table_name:str, pk_column: str, pk_value: str, s
         options['Index'] = index
     res = table.query(**options)
     return res['Items']
+
+def get_service_by_id(service_id: str) -> dict:
+    '''サービスIDでサービス情報取得
+    '''
+    return get_data_by_pk(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=service_id
+    )
+
+def get_service_by_channel_id(channel_id: str) -> dict:
+    '''LineチャネルIDでサービス情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_GSI2_PK_COLUMN,
+        pk_value=channel_id,
+        sk_column=DYNAMODB_GSI2_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_SERVICE}_'
+    )
 
 def get_service_by_email(email: str) -> dict:
     '''メールアドレスでサービス情報取得
