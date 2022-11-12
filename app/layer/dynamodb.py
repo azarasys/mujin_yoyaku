@@ -12,18 +12,14 @@ DYNAMODB_PK_COLUMN = os.environ['DYNAMODB_PK_COLUMN']
 DYNAMODB_SK_COLUMN = os.environ['DYNAMODB_SK_COLUMN']
 DYNAMODB_GSI1_PK_COLUMN = os.environ['DYNAMODB_GSI1_PK_COLUMN']
 DYNAMODB_LSI1_SK_COLUMN = os.environ['DYNAMODB_LSI1_SK_COLUMN']
-DYNAMODB_GSI2_PK_COLUMN = os.environ['DYNAMODB_GSI2_PK_COLUMN']
-DYNAMODB_GSI2_SK_COLUMN = os.environ['DYNAMODB_GSI2_SK_COLUMN']
 GSI1_INDEX_NAME = os.environ['GSI1_INDEX_NAME']
-GSI2_INDEX_NAME = os.environ['GSI2_INDEX_NAME']
 LSI1_INDEX_NAME = os.environ['LSI1_INDEX_NAME']
 
 # 固定値
-KEY_PREFIX_SERVICE = 'Service'
-KEY_PREFIX_USER = 'User'
-KEY_PREFIX_RESERVE = 'Reserve'
-KEY_PREFIX_DEVICE = 'Device'
-KEY_PREFIX_DATE = 'Date'
+KEY_PREFIX_SERVICE = 'channel'
+KEY_PREFIX_USER = 'user'
+KEY_PREFIX_RESERVE = 'reserve'
+KEY_PREFIX_DEVICE = 'device'
 DATE_FORMAT = '%Y-%m-%d'
 
 dynamodb = boto3.resource('dynamodb')
@@ -64,88 +60,67 @@ def get_data_by_pk_sk_beginwith(table_name:str, pk_column: str, pk_value: str, s
     res = table.query(**options)
     return res['Items']
 
-def get_service_by_id(service_id: str) -> dict:
-    '''サービスIDでサービス情報取得
+def get_channel_by_id(channel_id: str) -> dict:
+    '''LINEチャネルIDでLINEチャネル情報取得
     '''
     return get_data_by_pk(
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
-        pk_value=service_id
+        pk_value=channel_id
     )
 
-def get_service_by_channel_id(channel_id: str) -> dict:
-    '''LineチャネルIDでサービス情報取得
+def get_users_by_channel(channel_id: str) -> list[dict]:
+    '''LINEチャネル内の全ユーザ情報取得
     '''
     return get_data_by_pk_sk_beginwith(
         table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_GSI2_PK_COLUMN,
+        pk_column=DYNAMODB_PK_COLUMN,
         pk_value=channel_id,
-        sk_column=DYNAMODB_GSI2_SK_COLUMN,
-        sk_value=f'{KEY_PREFIX_SERVICE}_'
-    )
-
-def get_service_by_email(email: str) -> dict:
-    '''メールアドレスでサービス情報取得
-    '''
-    return get_data_by_pk(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_GSI1_PK_COLUMN,
-        pk_value=f'{KEY_PREFIX_SERVICE}_{email}',
-        index=GSI1_INDEX_NAME
-    )
-
-def get_users_by_service(service_id: str) -> list[dict]:
-    '''サービス内の全ユーザ情報取得
-    '''
-    return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
-        pk_value=service_id,
         sk_column=DYNAMODB_SK_COLUMN,
         sk_value=f'{KEY_PREFIX_USER}_'
     )
 
-def get_reserves_by_service(service_id: str) -> list[dict]:
-    '''サービス内の全予約情報取得
+def get_reserves_by_channel(channel_id: str) -> list[dict]:
+    '''LINEチャネル内の全予約情報取得
     '''
     return get_data_by_pk_sk_beginwith(
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
-        pk_value=service_id,
+        pk_value=channel_id,
         sk_column=DYNAMODB_SK_COLUMN,
         sk_value=f'{KEY_PREFIX_RESERVE}_'
     )
 
-def get_reserves_by_service_date(service_id: str, date_str: str) -> list[dict]:
-    '''サービス内の特定の日付の予約情報取得
+def get_reserves_by_channel_date(channel_id: str, date_str: str) -> list[dict]:
+    '''LINEチャネル内の特定の日付の予約情報取得
     '''
     return get_data_by_pk_sk_beginwith(
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
-        pk_value=service_id,
+        pk_value=channel_id,
         sk_column=DYNAMODB_LSI1_SK_COLUMN,
         sk_value=date_str,
         index=LSI1_INDEX_NAME
     )
 
-def get_devices_by_service(service_id: str) -> list[dict]:
-    '''サービス内の全デバイス情報取得
+def get_devices_by_channel(channel_id: str) -> list[dict]:
+    '''LINEチャネル内の全デバイス情報取得
     '''
     return get_data_by_pk_sk_beginwith(
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
-        pk_value=service_id,
+        pk_value=channel_id,
         sk_column=DYNAMODB_SK_COLUMN,
         sk_value=f'{KEY_PREFIX_DEVICE}_'
     )
 
-def get_devices_by_service_type(service_id: str, device_type: str) -> list[dict]:
-    '''サービス内の特定の種類の全デバイス情報取得
+def get_devices_by_channel_type(channel_id: str, device_type: str) -> list[dict]:
+    '''LINEチャネル内の特定の種類の全デバイス情報取得
     '''
     return get_data_by_pk_sk_beginwith(
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
-        pk_value=service_id,
+        pk_value=channel_id,
         sk_column=DYNAMODB_SK_COLUMN,
         sk_value=f'{KEY_PREFIX_DEVICE}_{device_type}_'
     )
@@ -160,13 +135,13 @@ def get_user_by_email(email: str) -> dict:
         index=GSI1_INDEX_NAME
     )
 
-def get_reserves_by_user(service_id: str, user_id: str) -> list[dict]:
+def get_reserves_by_user(channel_id: str, user_id: str) -> list[dict]:
     '''ユーザの全予約情報取得
     '''
     return get_data_by_pk(
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
-        pk_value=service_id,
+        pk_value=channel_id,
         pk_column=DYNAMODB_SK_COLUMN,
         pk_value=f'{KEY_PREFIX_RESERVE}_{user_id}'
     )
@@ -183,12 +158,12 @@ def put_data(table_name:str, item: dict) -> bool:
     print(f'Put: {id}')
     return True
 
-def delete_id_data(service_id: str, key: str) -> bool:
-    '''サービス内の特定データを削除する
+def delete_id_data(channel_id: str, key: str) -> bool:
+    '''LINEチャネル内の特定データを削除する
     '''
     table = dynamodb.Table(DYNAMODB_TABLE_NAME)
     options = {
-        'Key': {DYNAMODB_PK_COLUMN: service_id, DYNAMODB_SK_COLUMN: key},
+        'Key': {DYNAMODB_PK_COLUMN: channel_id, DYNAMODB_SK_COLUMN: key},
     }
     try:
         res = table.delete_item(**options)
@@ -198,36 +173,36 @@ def delete_id_data(service_id: str, key: str) -> bool:
     print(f'Delete: {id}')
     return True
 
-def delete_user(service_id: str, user_id: str):
-    '''サービス内のユーザを削除する
+def delete_user(channel_id: str, user_id: str):
+    '''LINEチャネル内のユーザを削除する
     '''
     delete_id_data(
-        service_id=service_id,
+        channel_id=channel_id,
         key=f'{KEY_PREFIX_USER}_{user_id}'
     )
 
-def delete_reserve(service_id: str, user_id: str, reserve_id: str):
-    '''サービス内の予約を削除する
+def delete_reserve(channel_id: str, user_id: str, reserve_id: str):
+    '''LINEチャネル内の予約を削除する
     '''
     delete_id_data(
-        service_id=service_id,
+        channel_id=channel_id,
         key=f'{KEY_PREFIX_RESERVE}_{user_id}_{reserve_id}'
     )
 
-def delete_device(service_id: str, device_type: str, device_id: str):
-    '''サービス内のデバイスを削除する
+def delete_device(channel_id: str, device_type: str, device_id: str):
+    '''LINEチャネル内のデバイスを削除する
     '''
     delete_id_data(
-        service_id=service_id,
+        channel_id=channel_id,
         key=f'{KEY_PREFIX_DEVICE}_{device_type}_{device_id}'
     )
 
-def update_active_false(service_id:str, key: str) -> bool:
+def update_active_false(channel_id:str, key: str) -> bool:
     '''データを活性フラグをオフにする
     '''
     table = dynamodb.Table(DYNAMODB_TABLE_NAME)
     options = {
-        'Key': {DYNAMODB_PK_COLUMN: service_id, DYNAMODB_SK_COLUMN: key},
+        'Key': {DYNAMODB_PK_COLUMN: channel_id, DYNAMODB_SK_COLUMN: key},
         'UpdateExpression': 'set active = :active',
         'ExpressionAttributeValues': {':active': False},
         'ReturnValues': 'UPDATED_NEW'
