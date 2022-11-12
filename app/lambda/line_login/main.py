@@ -1,9 +1,8 @@
 import os
 import requests
-import boto3
 from layer.dynamodb import get_service_by_id, put_data
 from layer.secrets_manager import get_secret
-from layer.notice import send_line_push_massage, generate_body
+from layer.notice import send_line_push_massage
 
 LINE_API_URL_AUTH = os.environ['LINE_API_URL_AUTH']
 LINE_API_URL_VERIFY = os.environ['LINE_API_URL_VERIFY']
