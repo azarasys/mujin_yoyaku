@@ -1,18 +1,22 @@
 import secrets
 import string
 import os
-import uuid
 
 from layer.dynamodb import put_data
+from layer.secrets_manager import get_secret
+from layer.sqs import send_sqs_message
 
 # 環境変数
 DEFAULT_PASSWORD_LENGTH = os.environ['DEFAULT_PASSWORD_LENGTH']
-TMP_REGISTER_TABLE_NAME = os.environ['TMP_REGISTER_TABLE_NAME']
-URL_TABLE_NAME = os.environ['URL_TABLE_NAME']
+DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
 REGISTER_COMPLITE_URL = os.environ['REGISTER_COMPLITE_URL']
+ERROR_URL = os.environ['ERROR_URL']
+CHANGE_RICHMENU_SQS_URL = os.environ['CHANGE_RICHMENU_SQS_URL']
 
 # 固定値
 PREFIX_KEY = 'user'
+SECRET_KEY_CHANNEL_ACCESS_TOKEN = 'channel_access_token'
+API_URL_BASE = 'https://api.line.me/v2/bot/user/{user_id}/richmenu/{richmenu_id}'
 
 def _get_random_password(length: int):
     pass_chars = string.ascii_letters + string.digits
@@ -41,15 +45,29 @@ def get_input_form_value(event: dict):
 def lambda_handler(event, context):
     input_form_data = get_input_form_value(event)
     
+    # 会員情報登録
     is_put = put_data(
-        table_name=TMP_REGISTER_TABLE_NAME,
+        table_name=DYNAMODB_TABLE_NAME,
         item=input_form_data
     )
 
+    # 登録失敗はエラー画面へリダイレクト
     if not is_put:
-        raise Exception('Could not registered temporary user.')
+        print('Could not registered temporary user.')
+        return {
+            'statusCode': 302,
+            'headers': {
+                'Location': ERROR_URL
+            }
+        }
+
+    # リッチメニューを会員用に更新する
+    send_sqs_message(
+        sqs_url=CHANGE_RICHMENU_SQS_URL,
+        message={'line_id': input_form_data['line_id'], 'menu_type': 'member'}
+    )
     
-    # 各チャンネル用Lineログイン画面URL取得
+    # 完了画面表示
     return {
         'statusCode': 302,
         'headers': {
