@@ -19,7 +19,6 @@ def _get_random_password(length: int):
     password = ''.join(secrets.choice(pass_chars) for x in range(length))
     return password
 
-
 def get_input_form_value(event: dict):
     # 入力フォームの会員情報取得
     return {
@@ -35,23 +34,16 @@ def get_input_form_value(event: dict):
         'gender': event['gender'],
         'birthday': event['birthday'],
         'notice': event['notice'],
+        'active': True,
         'password': _get_random_password(DEFAULT_PASSWORD_LENGTH)
     }
 
 def lambda_handler(event, context):
     input_form_data = get_input_form_value(event)
     
-    data = {
-        'id': str(uuid.uuid4()),
-        # 仮登録なのでFalse
-        'active': False
-    }
-
-    data.update(input_form_data)
-
     is_put = put_data(
         table_name=TMP_REGISTER_TABLE_NAME,
-        item=data
+        item=input_form_data
     )
 
     if not is_put:
