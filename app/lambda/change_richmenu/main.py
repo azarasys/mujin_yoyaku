@@ -1,9 +1,8 @@
-import json
 import os
 import requests
 
 from layer.secrets_manager import get_secret
-from layer.sqs import send_sqs_message
+from layer.sqs import get_sqs_message
 
 # 環境変数
 DEFAULT_RICHMENU_ID = os.environ['DEFAULT_RICHMENU_ID']
@@ -14,14 +13,6 @@ CHANGE_RICHMENU_SQS_URL = os.environ['CHANGE_RICHMENU_SQS_URL']
 SECRET_KEY_CHANNEL_ACCESS_TOKEN = 'channel_access_token'
 API_URL_BASE = 'https://api.line.me/v2/bot/user/{user_id}/richmenu/{richmenu_id}'
 
-
-def get_sqs_message(event: dict):
-    '''トリガとなるSQSのメッセージを取得する
-    '''
-    records = event['Records']
-    message = records[0]
-    message_body = message['body']
-    return json.loads(message_body)
 
 def change_richmenu(line_id: str, menu_type: str):
     '''リッチメニューを変更する
