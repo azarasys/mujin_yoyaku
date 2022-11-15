@@ -1,6 +1,7 @@
 import boto3
 import os
 import logging
+from datetime import datetime
 from boto3.dynamodb.conditions import Key
 
 logger = logging.getLogger()
@@ -11,6 +12,8 @@ DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
 DYNAMODB_PK_COLUMN = os.environ['DYNAMODB_PK_COLUMN']
 DYNAMODB_SK_COLUMN = os.environ['DYNAMODB_SK_COLUMN']
 DYNAMODB_GSI1_PK_COLUMN = os.environ['DYNAMODB_GSI1_PK_COLUMN']
+DYNAMODB_GSI2_PK_COLUMN = os.environ['DYNAMODB_GSI2_PK_COLUMN']
+DYNAMODB_GSI2_SK_COLUMN = os.environ['DYNAMODB_GSI2_SK_COLUMN']
 DYNAMODB_LSI1_SK_COLUMN = os.environ['DYNAMODB_LSI1_SK_COLUMN']
 GSI1_INDEX_NAME = os.environ['GSI1_INDEX_NAME']
 LSI1_INDEX_NAME = os.environ['LSI1_INDEX_NAME']
@@ -20,7 +23,8 @@ KEY_PREFIX_SERVICE = 'channel'
 KEY_PREFIX_USER = 'user'
 KEY_PREFIX_RESERVE = 'reserve'
 KEY_PREFIX_DEVICE = 'device'
-DATE_FORMAT = '%Y-%m-%d'
+KEY_PREFIX_PASSWORD = 'password'
+DATE_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 dynamodb = boto3.resource('dynamodb')
 
@@ -142,21 +146,43 @@ def get_reserves_by_user(channel_id: str, user_id: str) -> list[dict]:
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
         pk_value=channel_id,
-        pk_column=DYNAMODB_SK_COLUMN,
-        pk_value=f'{KEY_PREFIX_RESERVE}_{user_id}'
+        sk_column=DYNAMODB_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_RESERVE}_{user_id}'
+    )
+
+def get_reserves_by_room_start(room_id: str, start_time: str) -> list[dict]:
+    '''特定の施設の特定日時の予約情報取得
+    '''
+    return get_data_by_pk_sk(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_GSI2_PK_COLUMN,
+        pk_value=room_id,
+        sk_column=DYNAMODB_GSI2_SK_COLUMN,
+        sk_value=start_time
+    )
+
+def get_password_by_channel_date(channel_id: str, start_time: str) -> list[dict]:
+    '''チャネルIDの特定日時の全パスワード情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=channel_id,
+        sk_column=DYNAMODB_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_PASSWORD}_{start_time}'
     )
 
 def put_data(table_name:str, item: dict) -> bool:
     '''データを追加する
     '''
     table = dynamodb.Table(table_name)
+    item['create_at'] = datetime.now().strftime(DATE_TIME_FORMAT)
     try:
         res = table.put_item(Item=item)
     except Exception as e:
         print(f'Could not writed data: {e}')
-        return False
-    print(f'Put: {id}')
-    return True
+        raise e
+    print(f'Put: {res}')
 
 def delete_id_data(channel_id: str, key: str) -> bool:
     '''LINEチャネル内の特定データを削除する
@@ -167,11 +193,10 @@ def delete_id_data(channel_id: str, key: str) -> bool:
     }
     try:
         res = table.delete_item(**options)
-    except Exception as r:
-        print(f'Could not delete: {id}')
-        return False
-    print(f'Delete: {id}')
-    return True
+    except Exception as e:
+        print(f'Could not delete: {key}')
+        raise e
+    print(f'Delete: {key}')
 
 def delete_user(channel_id: str, user_id: str):
     '''LINEチャネル内のユーザを削除する
@@ -210,7 +235,6 @@ def update_active_false(channel_id:str, key: str) -> bool:
     try:
         res = table.update_item(**options)
     except Exception as e:
-        print(f'Could not update active: {id}')
-        return False
+        print(f'Could not update active: {key}')
+        raise e
     print(f'Update active: {id}')
-    return True
