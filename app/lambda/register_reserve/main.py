@@ -2,31 +2,32 @@ import os
 import random
 from datetime import datetime
 
-from layer.sqs import get_sqs_message
+from layer.sqs import get_sqs_message, send_sqs_message
 from layer.dynamodb import put_data, get_reserves_by_room_start, get_password_by_channel_date
 from layer.notice import send_line_push_massage
 
 # 環境変数
 DEFAULT_PASSWORD_LENGTH = os.environ['DEFAULT_PASSWORD_LENGTH']
+CHANGE_RICHMENU_SQS_URL = os.environ['CHANGE_RICHMENU_SQS_URL']
 
 # 固定値
 DEFAULT_MIN_NUM = 0
 DEFAULT_MAX_NUM = 10
 WEEK_DAYS = {0: '月', 1: '火', 2: '水', 3: '木', 4: '金', 5: '土', 6: '日'}
 
-def generate_push_message(params: dict, is_reserve: bool=True):
-    start_dt = datetime.strptime(params['start_time'], '%Y%m%d%H%M')
-    end_dt = datetime.strptime(params['end_time'], '%Y%m%d%H%M')
+def generate_push_message(data: dict, is_reserve: bool=True):
+    start_dt = datetime.strptime(data['start_time'], '%Y%m%d%H%M')
+    end_dt = datetime.strptime(data['end_time'], '%Y%m%d%H%M')
     date_str = f"{start_dt.strftime('%Y年%m月%d日')}({WEEK_DAYS[start_dt.weekday()]})"
     start_time = f'{str(start_dt.hour).zfill(2)}:{str(start_dt.min).zfill(2)}'
     end_time = f'{str(end_dt.hour).zfill(2)}:{str(end_dt.min).zfill(2)}'
-    params['body1_id'] = '100' if is_reserve else '101'
-    params['body1_args'] = []
-    params['body2_id'] = '200' if is_reserve else '201'
-    params['body2_args'] = [date_str, start_time, end_time]
-    params['body3_id'] = '300' if is_reserve else '301'
-    params['body3_args'] = []
-    return params
+    data['body1_id'] = '100' if is_reserve else '101'
+    data['body1_args'] = []
+    data['body2_id'] = '200' if is_reserve else '201'
+    data['body2_args'] = [date_str, start_time, end_time]
+    data['body3_id'] = '300' if is_reserve else '301'
+    data['body3_args'] = []
+    return data
 
 
 def generate_rondom_numbers() -> str:
@@ -53,26 +54,39 @@ def generate_random_password(channel_id: str, start_time: str) -> str:
 
     return numbers 
 
-def check_reserve(room_id: str, start_time: str) -> bool:
+def check_duplicate_reserve(reserve: dict, data: dict) -> bool:
     '''予約時間が重複するか確認する
     '''
-    data = get_reserves_by_room_start(room_id, start_time)
-    return True if not data else False
+    if not reserve:
+        return True
+
+    return False
 
 
 def lambda_handler(event, context):
 
-    params = get_sqs_message(event)
+    data = get_sqs_message(event)
 
-    is_reserve = check_reserve(params['room_id'], params['start_time'])
+    reserve = get_reserves_by_room_start(data['room_id'], data['start_time'])
+
+    is_reserve = True if not reserve else False
+    # 多重起動を考慮
+    if is_reserve and all([reserve.get('channel_id') == data['channel_id'], reserve.get('line_id') == data['line_id']]):
+        print('this is multiple start.')
+        return True
 
     if is_reserve:
         # 予約登録
-        params['password'] = generate_random_password(params['channel_id'], params['start_time'])
-        put_data(params)
+        data['password'] = generate_random_password(data['channel_id'], data['start_time'])
+        put_data(data)
+         # リッチメニューを予約確認に更新する
+        send_sqs_message(
+            sqs_url=CHANGE_RICHMENU_SQS_URL,
+            message={'line_id': data['line_id'], 'menu_type': data['type']}
+        )
     
-    params = generate_push_message(params, is_reserve)
+    data = generate_push_message(data, is_reserve)
 
-    send_line_push_massage(params)
+    send_line_push_massage(data)
 
     return True

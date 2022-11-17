@@ -73,6 +73,17 @@ def get_channel_by_id(channel_id: str) -> dict:
         pk_value=channel_id
     )
 
+def get_user_by_id_channel(channel_id: str, line_id: str) -> list[dict]:
+    '''LINEチャネル内の全ユーザ情報取得
+    '''
+    return get_data_by_pk_sk(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=channel_id,
+        sk_column=DYNAMODB_SK_COLUMN,
+        sk_value=f'{KEY_PREFIX_USER}_{line_id}'
+    )
+
 def get_users_by_channel(channel_id: str) -> list[dict]:
     '''LINEチャネル内の全ユーザ情報取得
     '''
@@ -129,13 +140,13 @@ def get_devices_by_channel_type(channel_id: str, device_type: str) -> list[dict]
         sk_value=f'{KEY_PREFIX_DEVICE}_{device_type}_'
     )
 
-def get_user_by_email(email: str) -> dict:
+def get_user_by_id(line_id: str) -> dict:
     '''メールアドレスでユーザ情報取得
     '''
     return get_data_by_pk(
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_GSI1_PK_COLUMN,
-        pk_value=f'{KEY_PREFIX_USER}_{email}',
+        pk_value=f'{KEY_PREFIX_USER}_{line_id}',
         index=GSI1_INDEX_NAME
     )
 
@@ -176,7 +187,10 @@ def put_data(table_name:str, item: dict) -> bool:
     '''データを追加する
     '''
     table = dynamodb.Table(table_name)
-    item['create_at'] = datetime.now().strftime(DATE_TIME_FORMAT)
+    if not item.get('create_at'):
+        item['create_at'] = datetime.now().strftime(DATE_TIME_FORMAT)
+    else:
+        item['modify_at'] = datetime.now().strftime(DATE_TIME_FORMAT)
     try:
         res = table.put_item(Item=item)
     except Exception as e:
