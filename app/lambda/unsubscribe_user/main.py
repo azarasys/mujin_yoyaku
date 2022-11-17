@@ -22,6 +22,11 @@ def lambda_handler(event, content):
     data = get_sqs_message(event)
     user = get_user_by_id_channel(data['channel_id'], data['line_id'])
 
+    # 多重起動は終了
+    if user['active'] == False:
+        print(f'{user["line_id"]} had unsubscribe.')
+        return True
+
     user['active'] = False
     user['end_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
