@@ -7,6 +7,7 @@ from layer.dynamodb import put_data, get_reserves_by_room_start, get_password_by
 from layer.notice import send_line_push_massage
 
 # 環境変数
+DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
 DEFAULT_PASSWORD_LENGTH = os.environ['DEFAULT_PASSWORD_LENGTH']
 CHANGE_RICHMENU_SQS_URL = os.environ['CHANGE_RICHMENU_SQS_URL']
 
@@ -78,7 +79,10 @@ def lambda_handler(event, context):
     if is_reserve:
         # 予約登録
         data['password'] = generate_random_password(data['channel_id'], data['start_time'])
-        put_data(data)
+        put_data(
+            table_name=DYNAMODB_TABLE_NAME,
+            item=data
+        )
          # リッチメニューを予約確認に更新する
         send_sqs_message(
             sqs_url=CHANGE_RICHMENU_SQS_URL,
