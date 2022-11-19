@@ -20,6 +20,7 @@ def get_input_form_value(event: dict):
     elif event['type'] == 'register':
         event['key'] =  f"user_{event['line_id']}",
         event['active'] = True
+        event['is_woner'] = False
     elif event['type'] == 'unsubscribe':
         event['key'] = f"unsbscribe_{event['line_id']}"
 
