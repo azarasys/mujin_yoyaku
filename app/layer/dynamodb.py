@@ -15,6 +15,7 @@ DYNAMODB_GSI1_PK_COLUMN = os.environ['DYNAMODB_GSI1_PK_COLUMN']
 DYNAMODB_GSI2_PK_COLUMN = os.environ['DYNAMODB_GSI2_PK_COLUMN']
 DYNAMODB_GSI2_SK_COLUMN = os.environ['DYNAMODB_GSI2_SK_COLUMN']
 DYNAMODB_LSI1_SK_COLUMN = os.environ['DYNAMODB_LSI1_SK_COLUMN']
+DYNAMODB_LSI2_SK_COLUMN = os.environ['DYNAMODB_LSI2_SK_COLUMN']
 GSI1_INDEX_NAME = os.environ['GSI1_INDEX_NAME']
 LSI1_INDEX_NAME = os.environ['LSI1_INDEX_NAME']
 
@@ -73,6 +74,18 @@ def get_channel_by_id(channel_id: str) -> dict:
         pk_value=channel_id
     )
 
+def get_user_by_owner(channel_id: str) -> dict:
+    '''LINEチャネルのオーナーユーザ情報取得
+    '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=channel_id,
+        sk_column=DYNAMODB_LSI1_SK_COLUMN,
+        sk_value=True,
+        index=LSI1_INDEX_NAME
+    )
+
 def get_user_by_id_channel(channel_id: str, line_id: str) -> list[dict]:
     '''LINEチャネル内の全ユーザ情報取得
     '''
@@ -113,7 +126,7 @@ def get_reserves_by_channel_date(channel_id: str, date_str: str) -> list[dict]:
         table_name=DYNAMODB_TABLE_NAME,
         pk_column=DYNAMODB_PK_COLUMN,
         pk_value=channel_id,
-        sk_column=DYNAMODB_LSI1_SK_COLUMN,
+        sk_column=DYNAMODB_LSI2_SK_COLUMN,
         sk_value=date_str,
         index=LSI1_INDEX_NAME
     )
