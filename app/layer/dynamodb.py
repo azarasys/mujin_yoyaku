@@ -16,8 +16,11 @@ DYNAMODB_GSI2_PK_COLUMN = os.environ['DYNAMODB_GSI2_PK_COLUMN']
 DYNAMODB_GSI2_SK_COLUMN = os.environ['DYNAMODB_GSI2_SK_COLUMN']
 DYNAMODB_LSI1_SK_COLUMN = os.environ['DYNAMODB_LSI1_SK_COLUMN']
 DYNAMODB_LSI2_SK_COLUMN = os.environ['DYNAMODB_LSI2_SK_COLUMN']
+DYNAMODB_LSI3_SK_COLUMN = os.environ['DYNAMODB_LSI3_SK_COLUMN']
 GSI1_INDEX_NAME = os.environ['GSI1_INDEX_NAME']
 LSI1_INDEX_NAME = os.environ['LSI1_INDEX_NAME']
+LSI2_INDEX_NAME = os.environ['LSI2_INDEX_NAME']
+LSI3_INDEX_NAME = os.environ['LSI3_INDEX_NAME']
 
 # 固定値
 KEY_PREFIX_SERVICE = 'channel'
@@ -128,7 +131,7 @@ def get_reserves_by_channel_date(channel_id: str, date_str: str) -> list[dict]:
         pk_value=channel_id,
         sk_column=DYNAMODB_LSI2_SK_COLUMN,
         sk_value=date_str,
-        index=LSI1_INDEX_NAME
+        index=LSI2_INDEX_NAME
     )
 
 def get_devices_by_channel(channel_id: str) -> list[dict]:
@@ -151,6 +154,18 @@ def get_devices_by_channel_type(channel_id: str, device_type: str) -> list[dict]
         pk_value=channel_id,
         sk_column=DYNAMODB_SK_COLUMN,
         sk_value=f'{KEY_PREFIX_DEVICE}_{device_type}_'
+    )
+
+def get_device_by_channel_room(channel_id: str, room_name: str) -> list[dict]:
+    '''LINEチャネル内の特定の部屋のデバイス情報取得
+    '''
+    return get_data_by_pk_sk(
+        table_name=DYNAMODB_TABLE_NAME,
+        pk_column=DYNAMODB_PK_COLUMN,
+        pk_value=channel_id,
+        sk_column=DYNAMODB_LSI3_SK_COLUMN,
+        sk_value=room_name,
+        index=LSI3_INDEX_NAME
     )
 
 def get_user_by_id(line_id: str) -> dict:
