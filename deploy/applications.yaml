@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: "Layer for system"
+
+ Metadata: 
+   Refs: 
+     LambdaConfig:  &lambda_config 
+       Timeout: 900 
+       Role: !GetAtt RoleCommonLambda.Arn 
+
+ Parameters: 
+  Prefix: 
+    Type: String 
+  Environment: 
+    Type: String 
+    AllowedValues: 
+      - dev 
+      - prd
+  MainTableArn:
+    Type: String
+  ChannelId:
+    Type: String
+
+Globals: 
+   Function: 
+     Runtime: python3.9 
+     MemorySize: 128 
+     Timeout: 60 
+     Handler: index.lambda_handler 
+     Layers: 
+       - !Ref LambdaLayer 
+     Environment: 
+       Variables: 
+         ENV: !Ref Environment 
+         REGION: !Ref AWS::Region
+
+ Resources: 
+   RoleCommonLambda: 
+     Type: AWS::IAM::Role 
+     Properties: 
+       AssumeRolePolicyDocument: 
+         Version: "2012-10-17" 
+         Statement: 
+           - Effect: "Allow" 
+             Action: "sts:AssumeRole" 
+             Principal: 
+               Service: lambda.amazonaws.com 
+       ManagedPolicyArns: 
+         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
+         - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole 
+       Policies: 
+         - PolicyName: !Sub "${Prefix}-common-lambda-role" 
+           PolicyDocument: 
+             Version: "2012-10-17" 
+             Statement: 
+               - Effect: "Allow" 
+                 Action: 
+                   - secretsmanager:GetSecretValue 
+                 Resource: 
+                   - !Ref SecretRedshiftBisystemArn 
+               - Effect: "Allow" 
+                 Action: 
+                   - sns:Publish 
+                 Resource: 
+                   - !Ref TopicTranUpdateStartArn 
+               - Effect: "Allow" 
+                 Action: 
+                   - dynamodb:GetItem 
+                   - dynamodb:PutItem 
+                   - dynamodb:DeleteItem 
+                   - dynamodb:Query 
+                 Resource: 
+                   - !Ref MainTableArn 
+
+  LambdaLayer: 
+    Type: AWS::Serverless::LayerVersion 
+    Properties: 
+      LayerName: !Sub "${Prefix}-layer" 
+      ContentUri: ../app/layer
+      CompatibleRuntimes: 
+        - python3.9
+  
+  FunctionRegisterData: 
+     Type: AWS::Serverless::Function 
+     Properties: 
+       FunctionName: !Sub "${Prefix}-register-data" 
+       CodeUri: ../app/lambda/register_data

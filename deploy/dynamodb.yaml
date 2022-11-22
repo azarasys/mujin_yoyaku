@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: mujinyoyaku DynamoDB
+Parameters:
+  Prefix: 
+    Description: Resource Prefix 
+    Type: String 
+
+Mappings:
+  Common:
+    MainTable:
+      HashKey: channel_id
+      RangeKey: key
+      GSI1HashKey: key
+      GSI2HashKey: room_id
+      GSI2RangeKey: start_time
+      LSI1RangeKey: owner_id
+      LSI2RangeKey: start_time
+      LSI3RangeKey: room_id
+      BillingMode: PAY_PER_REQUEST
+    DynamoDBResult:
+      HashKey: Id
+      RangeKey: Status
+
+Resources:
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${Prefix}-main
+      AttributeDefinitions:
+        - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+          AttributeType: S
+        - AttributeName: !FindInMap [ Common,  MainTable, RangeKey ]
+          AttributeType: S
+      KeySchema:
+        - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+          KeyType: HASH
+        - AttributeName: !FindInMap [ Common,  MainTable, RangeKey ]
+          KeyType: RANGE
+      BillingMode: !FindInMap [ Common,  MainTable, BillingMode ]
+      GlobalSecondaryIndexes:
+        - IndexName: key
+          KeySchema:
+            - AttributeName: !FindInMap [ Common,  MainTable, RangeKey ]
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+        - IndexName: key
+          KeySchema:
+            - AttributeName: !FindInMap [ Common,  MainTable, GSI2HashKey ]
+              KeyType: HASH
+            - AttributeName: !FindInMap [ Common,  MainTable, GSI2RangeKey ]
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
+      LocalSecondaryIndexes:
+        - IndexName: channel-owner
+          KeySchema:
+            - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+              KeyType: HASH
+            - AttributeName: !FindInMap [ Common,  MainTable, LSI1RangeKey ]
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: channel-start
+          KeySchema:
+            - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+              KeyType: HASH
+            - AttributeName: !FindInMap [ Common,  MainTable, LSI2RangeKey ]
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: channel-room
+          KeySchema:
+            - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+              KeyType: HASH
+            - AttributeName: !FindInMap [ Common,  MainTable, LSI3RangeKey ]
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+Outputs:
+  MainTableArn:
+    Description: MainTableArn
+    Value: !GetAtt MainTable.Arn
+    Export:
+      Name: !Sub ${Prefix}-MainTableArn
+  MainTableName:
+    Description: MainTableName
+    Value: !Ref MainTable
+    Export:
+      Name: !Sub ${Prefix}-MainTableName

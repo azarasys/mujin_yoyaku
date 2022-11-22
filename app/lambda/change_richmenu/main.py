@@ -2,7 +2,6 @@ import os
 import requests
 
 from layer.secrets_manager import get_secret
-from layer.sqs import get_sqs_message
 
 # 環境変数
 DEFAULT_RICHMENU_ID = os.environ['DEFAULT_RICHMENU_ID']
@@ -42,6 +41,9 @@ def change_richmenu(line_id: str, menu_type: str=''):
     print(res.json())
 
 def lambda_handler(event, context):
-    params = get_sqs_message(event)
+    data = event['data']
+    menu_type = event['menu_type']
 
-    change_richmenu(**params)
+    change_richmenu(line_id=data['line_id'], menu_type=menu_type)
+
+    return True
