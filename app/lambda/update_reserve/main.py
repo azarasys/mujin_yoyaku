@@ -9,7 +9,7 @@ from layer.dynamodb import put_data, get_reserves_by_room_start
 from layer.secrets_manager import get_secret
 
 # 環境変数
-DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
+MAIN_TABLE_NAME = os.environ['MAIN_TABLE_NAME']
 SWITCHBOT_API_HOST = os.environ['SWITCHBOT_API_HOST']
 
 def generate_headers(channel_id: str) -> dict:
@@ -60,7 +60,7 @@ def lambda_handler(event, context):
 
     # 予約データを更新
     put_data(
-            table_name=DYNAMODB_TABLE_NAME,
+            table_name=MAIN_TABLE_NAME,
             item=reserve
         )
 

@@ -8,15 +8,15 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO())
 
 # 環境変数
-DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
-DYNAMODB_PK_COLUMN = os.environ['DYNAMODB_PK_COLUMN']
-DYNAMODB_SK_COLUMN = os.environ['DYNAMODB_SK_COLUMN']
-DYNAMODB_GSI1_PK_COLUMN = os.environ['DYNAMODB_GSI1_PK_COLUMN']
-DYNAMODB_GSI2_PK_COLUMN = os.environ['DYNAMODB_GSI2_PK_COLUMN']
-DYNAMODB_GSI2_SK_COLUMN = os.environ['DYNAMODB_GSI2_SK_COLUMN']
-DYNAMODB_LSI1_SK_COLUMN = os.environ['DYNAMODB_LSI1_SK_COLUMN']
-DYNAMODB_LSI2_SK_COLUMN = os.environ['DYNAMODB_LSI2_SK_COLUMN']
-DYNAMODB_LSI3_SK_COLUMN = os.environ['DYNAMODB_LSI3_SK_COLUMN']
+MAIN_TABLE_NAME = os.environ['MAIN_TABLE_NAME']
+HASH_KEY = os.environ['HASH_KEY']
+RANGE_KEY = os.environ['RANGE_KEY']
+GSI1_PK = os.environ['GSI1_PK']
+GSI2_PK = os.environ['GSI2_PK']
+GSI2_SK = os.environ['GSI2_SK']
+LSI1_SK = os.environ['LSI1_SK']
+LSI2_SK = os.environ['LSI2_SK']
+LSI3_SK = os.environ['LSI3_SK']
 GSI1_INDEX_NAME = os.environ['GSI1_INDEX_NAME']
 LSI1_INDEX_NAME = os.environ['LSI1_INDEX_NAME']
 LSI2_INDEX_NAME = os.environ['LSI2_INDEX_NAME']
@@ -72,8 +72,8 @@ def get_channel_by_id(channel_id: str) -> dict:
     '''LINEチャネルIDでLINEチャネル情報取得
     '''
     return get_data_by_pk(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id
     )
 
@@ -81,10 +81,10 @@ def get_user_by_owner(channel_id: str) -> dict:
     '''LINEチャネルのオーナーユーザ情報取得
     '''
     return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_LSI1_SK_COLUMN,
+        sk_column=LSI1_SK,
         sk_value=True,
         index=LSI1_INDEX_NAME
     )
@@ -93,10 +93,10 @@ def get_user_by_id_channel(channel_id: str, line_id: str) -> list[dict]:
     '''LINEチャネル内の全ユーザ情報取得
     '''
     return get_data_by_pk_sk(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_SK_COLUMN,
+        sk_column=RANGE_KEY,
         sk_value=f'{KEY_PREFIX_USER}_{line_id}'
     )
 
@@ -104,10 +104,10 @@ def get_users_by_channel(channel_id: str) -> list[dict]:
     '''LINEチャネル内の全ユーザ情報取得
     '''
     return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_SK_COLUMN,
+        sk_column=RANGE_KEY,
         sk_value=f'{KEY_PREFIX_USER}_'
     )
 
@@ -115,10 +115,10 @@ def get_reserves_by_channel(channel_id: str) -> list[dict]:
     '''LINEチャネル内の全予約情報取得
     '''
     return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_SK_COLUMN,
+        sk_column=RANGE_KEY,
         sk_value=f'{KEY_PREFIX_RESERVE}_'
     )
 
@@ -126,10 +126,10 @@ def get_reserves_by_channel_date(channel_id: str, date_str: str) -> list[dict]:
     '''LINEチャネル内の特定の日付の予約情報取得
     '''
     return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_LSI2_SK_COLUMN,
+        sk_column=LSI2_SK,
         sk_value=date_str,
         index=LSI2_INDEX_NAME
     )
@@ -138,10 +138,10 @@ def get_devices_by_channel(channel_id: str) -> list[dict]:
     '''LINEチャネル内の全デバイス情報取得
     '''
     return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_SK_COLUMN,
+        sk_column=RANGE_KEY,
         sk_value=f'{KEY_PREFIX_DEVICE}_'
     )
 
@@ -149,10 +149,10 @@ def get_devices_by_channel_type(channel_id: str, device_type: str) -> list[dict]
     '''LINEチャネル内の特定の種類の全デバイス情報取得
     '''
     return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_SK_COLUMN,
+        sk_column=RANGE_KEY,
         sk_value=f'{KEY_PREFIX_DEVICE}_{device_type}_'
     )
 
@@ -160,10 +160,10 @@ def get_device_by_channel_room(channel_id: str, room_name: str) -> list[dict]:
     '''LINEチャネル内の特定の部屋のデバイス情報取得
     '''
     return get_data_by_pk_sk(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_LSI3_SK_COLUMN,
+        sk_column=LSI3_SK,
         sk_value=room_name,
         index=LSI3_INDEX_NAME
     )
@@ -172,8 +172,8 @@ def get_user_by_id(line_id: str) -> dict:
     '''メールアドレスでユーザ情報取得
     '''
     return get_data_by_pk(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_GSI1_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=GSI1_PK,
         pk_value=f'{KEY_PREFIX_USER}_{line_id}',
         index=GSI1_INDEX_NAME
     )
@@ -182,10 +182,10 @@ def get_reserves_by_user(channel_id: str, user_id: str) -> list[dict]:
     '''ユーザの全予約情報取得
     '''
     return get_data_by_pk(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_SK_COLUMN,
+        sk_column=RANGE_KEY,
         sk_value=f'{KEY_PREFIX_RESERVE}_{user_id}'
     )
 
@@ -193,10 +193,10 @@ def get_reserves_by_room_start(room_id: str, start_time: str) -> list[dict]:
     '''特定の施設の特定日時の予約情報取得
     '''
     return get_data_by_pk_sk(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_GSI2_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=GSI2_PK,
         pk_value=room_id,
-        sk_column=DYNAMODB_GSI2_SK_COLUMN,
+        sk_column=GSI2_SK,
         sk_value=start_time
     )
 
@@ -204,10 +204,10 @@ def get_password_by_channel_date(channel_id: str, start_time: str) -> list[dict]
     '''チャネルIDの特定日時の全パスワード情報取得
     '''
     return get_data_by_pk_sk_beginwith(
-        table_name=DYNAMODB_TABLE_NAME,
-        pk_column=DYNAMODB_PK_COLUMN,
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=DYNAMODB_SK_COLUMN,
+        sk_column=RANGE_KEY,
         sk_value=f'{KEY_PREFIX_PASSWORD}_{start_time}'
     )
 
@@ -229,9 +229,9 @@ def put_data(table_name:str, item: dict) -> bool:
 def delete_id_data(channel_id: str, key: str) -> bool:
     '''LINEチャネル内の特定データを削除する
     '''
-    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+    table = dynamodb.Table(MAIN_TABLE_NAME)
     options = {
-        'Key': {DYNAMODB_PK_COLUMN: channel_id, DYNAMODB_SK_COLUMN: key},
+        'Key': {HASH_KEY: channel_id, RANGE_KEY: key},
     }
     try:
         res = table.delete_item(**options)
@@ -267,9 +267,9 @@ def delete_device(channel_id: str, device_type: str, device_id: str):
 def update_active_false(channel_id:str, key: str) -> bool:
     '''データを活性フラグをオフにする
     '''
-    table = dynamodb.Table(DYNAMODB_TABLE_NAME)
+    table = dynamodb.Table(MAIN_TABLE_NAME)
     options = {
-        'Key': {DYNAMODB_PK_COLUMN: channel_id, DYNAMODB_SK_COLUMN: key},
+        'Key': {HASH_KEY: channel_id, RANGE_KEY: key},
         'UpdateExpression': 'set active = :active',
         'ExpressionAttributeValues': {':active': False},
         'ReturnValues': 'UPDATED_NEW'

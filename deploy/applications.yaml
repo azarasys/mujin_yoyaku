@@ -18,21 +18,41 @@ Description: "Layer for system"
       - prd
   MainTableArn:
     Type: String
+  MainTableName:
+    Type: String
   ChannelId:
+    Type: String
+  HashKey:
+    Type: String
+  RangeKey:
+    Type: String
+  Key1:
+    Type: String
+  Key2:
+    Type: String
+  Key3:
     Type: String
 
 Globals: 
-   Function: 
-     Runtime: python3.9 
-     MemorySize: 128 
-     Timeout: 60 
-     Handler: index.lambda_handler 
-     Layers: 
-       - !Ref LambdaLayer 
-     Environment: 
-       Variables: 
-         ENV: !Ref Environment 
-         REGION: !Ref AWS::Region
+  Function: 
+    Runtime: python3.9 
+    MemorySize: 128 
+    Timeout: 60 
+    Handler: index.lambda_handler 
+    Layers: 
+      - !Ref LambdaLayer 
+    Environment: 
+      Variables: 
+        ENV: !Ref Environment 
+        REGION: !Ref AWS::Region
+        MAIN_TABLE_NAME: !Ref MainTableName
+        HASH_KEY: !Ref HashKey
+        RANGE_KEY: !Ref RangeKey
+        GSI1_PK: !Ref Key1
+        GSI2_PK: !Ref Key2
+        LSI1_SK: !Ref Key3
+        LSI2_SK: !Ref Key2
+        LSI3_SK: !Ref Key1
 
  Resources: 
    RoleCommonLambda: 

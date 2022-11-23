@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: mujinyoyaku S3
+Parameters:
+  Prefix: 
+    Description: Resource Prefix 
+    Type: String 
+
+Resources:
+  BucketConfig:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${Prefix}-config
+      AccessControl: Private
+
+Outputs:
+  BucketConfigName:
+    Description: BucketConfigName
+    Value: !Ref BucketConfig
+    Export:
+      Name: !Sub ${Prefix}-BucketConfigName

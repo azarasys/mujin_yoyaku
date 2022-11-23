@@ -1,85 +1,95 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: "2010-09-09"
 Description: mujinyoyaku DynamoDB
 Parameters:
   Prefix: 
     Description: Resource Prefix 
     Type: String 
-
-Mappings:
-  Common:
-    MainTable:
-      HashKey: channel_id
-      RangeKey: key
-      GSI1HashKey: key
-      GSI2HashKey: room_id
-      GSI2RangeKey: start_time
-      LSI1RangeKey: owner_id
-      LSI2RangeKey: start_time
-      LSI3RangeKey: room_id
-      BillingMode: PAY_PER_REQUEST
-    DynamoDBResult:
-      HashKey: Id
-      RangeKey: Status
+  HashKey:
+    Type: String
+  RangeKey:
+    Type: String
+  Gsi1Pk:
+    Type: String
+  Gsi2Pk:
+    Type: String
+  Gsi2Sk:
+    Type: String
+  Lsi1Sk:
+    Type: String
+  Lsi2Sk:
+    Type: String
+  Lsi3Sk:
+    Type: String
+  Gsi1IndexName:
+    Type: String
+  Gsi2IndexName:
+    Type: String
+  Lsi1IndexName:
+    Type: String
+  Lsi2IndexName:
+    Type: String
+  Lsi3IndexName:
+    Type: String
 
 Resources:
   MainTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub ${Prefix}-main
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+        - AttributeName: !Ref HashKey
           AttributeType: S
-        - AttributeName: !FindInMap [ Common,  MainTable, RangeKey ]
+        - AttributeName: !Ref RangeKey
+          AttributeType: S
+        - AttributeName: !Ref Gsi2Pk
+          AttributeType: S
+        - AttributeName: !Ref Gsi2Sk
+          AttributeType: S
+        - AttributeName: !Ref Lsi1Sk
           AttributeType: S
       KeySchema:
-        - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+        - AttributeName: !Ref HashKey
           KeyType: HASH
-        - AttributeName: !FindInMap [ Common,  MainTable, RangeKey ]
+        - AttributeName: !Ref RangeKey
           KeyType: RANGE
-      BillingMode: !FindInMap [ Common,  MainTable, BillingMode ]
       GlobalSecondaryIndexes:
-        - IndexName: key
+        - IndexName: !Ref Gsi1IndexName
           KeySchema:
-            - AttributeName: !FindInMap [ Common,  MainTable, RangeKey ]
+            - AttributeName: !Ref Gsi1Pk
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: 1
-            WriteCapacityUnits: 1
-        - IndexName: key
+        - IndexName: !Ref Gsi2IndexName
           KeySchema:
-            - AttributeName: !FindInMap [ Common,  MainTable, GSI2HashKey ]
+            - AttributeName: !Ref RangeKey
               KeyType: HASH
-            - AttributeName: !FindInMap [ Common,  MainTable, GSI2RangeKey ]
+            - AttributeName: !Ref Lsi2Sk
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: 1
-            WriteCapacityUnits: 1
       LocalSecondaryIndexes:
-        - IndexName: channel-owner
+        - IndexName: !Ref Lsi1IndexName
           KeySchema:
-            - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+            - AttributeName: !Ref HashKey
               KeyType: HASH
-            - AttributeName: !FindInMap [ Common,  MainTable, LSI1RangeKey ]
+            - AttributeName: !Ref Lsi1Sk
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
-        - IndexName: channel-start
+        - IndexName: !Ref Lsi2IndexName
           KeySchema:
-            - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+            - AttributeName: !Ref HashKey
               KeyType: HASH
-            - AttributeName: !FindInMap [ Common,  MainTable, LSI2RangeKey ]
+            - AttributeName: !Ref Lsi2Sk
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
-        - IndexName: channel-room
+        - IndexName: !Ref Lsi3IndexName
           KeySchema:
-            - AttributeName: !FindInMap [ Common,  MainTable, HashKey ]
+            - AttributeName: !Ref HashKey
               KeyType: HASH
-            - AttributeName: !FindInMap [ Common,  MainTable, LSI3RangeKey ]
+            - AttributeName: !Ref Lsi3Sk
               KeyType: RANGE
           Projection:
             ProjectionType: ALL

@@ -10,7 +10,7 @@ from layer.secrets_manager import get_secret
 from layer.dynamodb import put_data
 
 # 環境変数
-DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
+MAIN_TABLE_NAME = os.environ['MAIN_TABLE_NAME']
 SWITCHBOT_API_HOST = os.environ['SWITCHBOT_API_HOST']
 
 def generate_headers(channel_id: str) -> dict:
@@ -61,7 +61,7 @@ def lambda_handler(event, context):
                 'active': True
             }
             put_data(
-                table_name=DYNAMODB_TABLE_NAME,
+                table_name=MAIN_TABLE_NAME,
                 item=item
             )
             print(f'register device keypad. evice_{room_name}_{device_id}')

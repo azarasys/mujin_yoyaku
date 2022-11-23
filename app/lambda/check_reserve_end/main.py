@@ -6,7 +6,7 @@ from layer.sqs import send_sqs_message
 
 # 環境変数
 CHANNEL_ID = os.environ['CHANNEL_ID']
-DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
+MAIN_TABLE_NAME = os.environ['MAIN_TABLE_NAME']
 CHANGE_RICHMENU_SQS_URL = os.environ['CHANGE_RICHMENU_SQS_URL']
 
 def generate_date_str_jst():
@@ -25,7 +25,7 @@ def lambda_handler(event, context):
         data['active'] = False
         try:
             put_data(
-                table_name=DYNAMODB_TABLE_NAME,
+                table_name=MAIN_TABLE_NAME,
                 item=data
             )
              # リッチメニューを会員専用に更新する

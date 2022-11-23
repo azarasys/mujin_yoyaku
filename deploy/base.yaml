@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: mujinyoyaku sam deploy base bucket
+Parameters:
+  Prefix: 
+    Description: Resource Prefix 
+    Type: String 
+
+Resources:
+  BucketDeploy:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${Prefix}-sam-deployments
+      AccessControl: Private
+
+Outputs:
+  BucketDeployName:
+    Description: BucketDeploy
+    Value: !Ref BucketDeploy
+    Export:
+      Name: !Sub ${Prefix}-BucketDeployName
