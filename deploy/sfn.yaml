@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: mujinyoyaku StepFunctions
+Parameters:
+  Prefix: 
+    Description: Resource Prefix 
+    Type: String 
+  FunctionCheckDataExistsArn:
+    Type: String
+  FunctionRegisterDataArn:
+    Type: String
+  FunctionChangeRichmenuArn:
+    Type: String
+  FunctionSendNotificationArn:
+    Type: String
+  FunctionUpdateDataActiveFalseArn:
+    Type: String
+  FunctionRegisterPasswordToDeviceArn:
+    Type: String
+  FunctionDeletePasswordToDeviceArn:
+    Type: String
+  
+Mappings:
+  Common:
+    RegisterUser:
+      Body1IdSuccess: 102
+      Body2IdSuccess: 202
+      Body3IdSuccess: 302
+      Body1IdExists: 104
+      Body2IdExists: 204
+      Body3IdExists: 304
+      Body1IdError: 105
+      Body2IdError: 205
+      Body3IdError: 305
+    RegisterReserve:
+      Body1IdSuccess: 100
+      Body2IdSuccess: 200
+      Body3IdSuccess: 300
+      Body1IdExists: 101
+      Body2IdExists: 201
+      Body3IdExists: 301
+      Body1IdError: 105
+      Body2IdError: 205
+      Body3IdError: 305
+    CancelReserve:
+      Body1IdSuccess: 106
+      Body2IdSuccess: 206
+      Body3IdSuccess: 306
+      Body1IdExists: 106
+      Body2IdExists: 206
+      Body3IdExists: 306
+      Body1IdError: 105
+      Body2IdError: 205
+      Body3IdError: 305
+
+
+Resources:
+  RoleStateMachineCommon:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - !Sub states.${AWS::Region}.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      RoleName: !Sub ${Prefix}-role-statemachine
+  
+  PolicyStateMachineCommon:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "lambda:InvokeFunction"
+            Resource:
+              - !Ref FunctionCheckDataExistsArn
+              - !Ref FunctionRegisterDataArn
+              - !Ref FunctionChangeRichmenuArn
+              - !Ref FunctionSendNotificationArn
+      Roles:
+        - !Ref RoleStateMachineCommon
+      PolicyName: !Sub ${Prefix}-policy-statemachine
+  
+  StateMachineRegisterUser:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub ${Prefix}-state-register-user
+      DefinitionUri: ../app/sfn/register_user.yaml
+      DefinitionSubstitutions:
+        # Lambda
+        FunctionCheckDataExistsArn: !Ref FunctionCheckDataExistsArn
+        FunctionRegisterDataArn: !Ref FunctionRegisterDataArn
+        FunctionChangeRichmenuArn: !Ref FunctionChangeRichmenuArn
+        FunctionSendNotificationArn: !Ref FunctionSendNotificationArn
+
+        # Notification
+        body1_id_success: !FindInMap [ Common, RegisterUser, Body1IdSuccess ]
+        body2_id_success: !FindInMap [ Common, RegisterUser, Body2IdSuccess ]
+        body3_id_success: !FindInMap [ Common, RegisterUser, Body3IdSuccess ]
+        body1_id_error: !FindInMap [ Common, RegisterUser, Body1IdError ]
+        body2_id_error: !FindInMap [ Common, RegisterUser, Body2IdError ]
+        body3_id_error: !FindInMap [ Common, RegisterUser, Body3IdError ]
+        body1_id_exists: !FindInMap [ Common, RegisterUser, Body1IdExists ]
+        body2_id_exists: !FindInMap [ Common, RegisterUser, Body2IdExists ]
+        body3_id_exists: !FindInMap [ Common, RegisterUser, Body3IdExists ]
+
+      Type: STANDARD
+      Role: !GetAtt RoleStateMachineCommon.Arn
+  
+  StateMachineRegisterReserve:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub ${Prefix}-state-register-reserve
+      DefinitionUri: ../app/sfn/register_reserve.yaml
+      DefinitionSubstitutions:
+        # Lambda
+        FunctionCheckDataExistsArn: !Ref FunctionCheckDataExistsArn
+        FunctionRegisterDataArn: !Ref FunctionRegisterDataArn
+        FunctionRegisterPasswordToDeviceArn: !Ref FunctionRegisterPasswordToDeviceArn
+        FunctionChangeRichmenuArn: !Ref FunctionChangeRichmenuArn
+        FunctionSendNotificationArn: !Ref FunctionSendNotificationArn
+
+        # Notification
+        body1_id_success: !FindInMap [ Common, RegisterReserve, Body1IdSuccess ]
+        body2_id_success: !FindInMap [ Common, RegisterReserve, Body2IdSuccess ]
+        body3_id_success: !FindInMap [ Common, RegisterReserve, Body3IdSuccess ]
+        body1_id_error: !FindInMap [ Common, RegisterReserve, Body1IdError ]
+        body2_id_error: !FindInMap [ Common, RegisterReserve, Body2IdError ]
+        body3_id_error: !FindInMap [ Common, RegisterReserve, Body3IdError ]
+        body1_id_exists: !FindInMap [ Common, RegisterReserve, Body1IdExists ]
+        body2_id_exists: !FindInMap [ Common, RegisterReserve, Body2IdExists ]
+        body3_id_exists: !FindInMap [ Common, RegisterReserve, Body3IdExists ]
+
+      Type: STANDARD
+      Role: !GetAtt RoleStateMachineCommon.Arn
+  
+  StateMachineCancelReserve:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub ${Prefix}-state-cancel-reserve
+      DefinitionUri: ../app/sfn/cancel_reserve.yaml
+      DefinitionSubstitutions:
+        # Lambda
+        FunctionCheckDataExistsArn: !Ref FunctionCheckDataExistsArn
+        FunctionUpdateDataArn: !Ref FunctionUpdateDataActiveFalseArn
+        FunctionDeletePasswordToDeviceArn: !Ref FunctionDeletePasswordToDeviceArn
+        FunctionChangeRichmenuArn: !Ref FunctionChangeRichmenuArn
+        FunctionSendNotificationArn: !Ref FunctionSendNotificationArn
+
+        # Notification
+        body1_id_success: !FindInMap [ Common, CancelReserve, Body1IdSuccess ]
+        body2_id_success: !FindInMap [ Common, CancelReserve, Body2IdSuccess ]
+        body3_id_success: !FindInMap [ Common, CancelReserve, Body3IdSuccess ]
+        body1_id_error: !FindInMap [ Common, CancelReserve, Body1IdError ]
+        body2_id_error: !FindInMap [ Common, CancelReserve, Body2IdError ]
+        body3_id_error: !FindInMap [ Common, CancelReserve, Body3IdError ]
+        body1_id_exists: !FindInMap [ Common, CancelReserve, Body1IdExists ]
+        body2_id_exists: !FindInMap [ Common, CancelReserve, Body2IdExists ]
+        body3_id_exists: !FindInMap [ Common, CancelReserve, Body3IdExists ]
+
+      Type: STANDARD
+      Role: !GetAtt RoleStateMachineCommon.Arn
+
+Outputs:
+  StateMachineRegisterUserArn:
+    Value: !Ref StateMachineRegisterUser
+    Export:
+      Name: !Sub ${Prefix}-StateMachineRegisterUserArn
+  StateMachineRegisterUserName:
+    Value: !GetAtt StateMachineRegisterUser.Name
+    Export:
+      Name: !Sub ${Prefix}-StateMachineRegisterUserName
+  StateMachineRegisterReserveArn:
+    Value: !Ref StateMachineRegisterReserve
+    Export:
+      Name: !Sub ${Prefix}-StateMachineRegisterReserveArn
+  StateMachineRegisterReserveName:
+    Value: !GetAtt StateMachineRegisterReserve.Name
+    Export:
+      Name: !Sub ${Prefix}-StateMachineRegisterReserveName

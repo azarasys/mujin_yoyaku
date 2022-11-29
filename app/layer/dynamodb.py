@@ -168,14 +168,15 @@ def get_device_by_channel_room(channel_id: str, room_name: str) -> list[dict]:
         index=LSI3_INDEX_NAME
     )
 
-def get_user_by_id(line_id: str) -> dict:
-    '''メールアドレスでユーザ情報取得
+def get_user_by_id(channel_id: str, line_id: str) -> dict:
+    '''ラインIDでユーザ情報取得
     '''
     return get_data_by_pk(
         table_name=MAIN_TABLE_NAME,
-        pk_column=GSI1_PK,
-        pk_value=f'{KEY_PREFIX_USER}_{line_id}',
-        index=GSI1_INDEX_NAME
+        pk_column=HASH_KEY,
+        pk_value=channel_id,
+        sk_column=RANGE_KEY,
+        sk_value=f'{KEY_PREFIX_USER}_{line_id}'
     )
 
 def get_reserves_by_user(channel_id: str, user_id: str) -> list[dict]:

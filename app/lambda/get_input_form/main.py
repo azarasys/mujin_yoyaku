@@ -55,6 +55,8 @@ def get_input_form_value(event: dict):
         event['is_woner'] = False
     elif event['type'] == 'unsubscribe':
         event['key'] = f"unsbscribe_{event['line_id']}"
+    elif event['type'] == 'cancel':
+        event['key'] = f"unsbscribe_{event['line_id']}"
 
     return event
 

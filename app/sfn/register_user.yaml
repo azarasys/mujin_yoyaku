@@ -1,0 +1,140 @@
+StartAt: CheckDataExists
+States:
+  CheckDataExists:
+    Type: Task
+    Resource: ${FunctionCheckDataExistsArn}
+    InputPath: $
+    ResultPath: $.CheckDataExists
+    OutputPath: $
+    Retry:
+      - ErrorEquals: [ "Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException" ]
+        IntervalSeconds: 2
+        MaxAttempts: 6
+        BackoffRate: 2
+      - ErrorEquals:
+          - Lambda.TooManyRequestsException
+        IntervalSeconds: 30
+        MaxAttempts: 5
+        BackoffRate: 2.0
+    Catch:
+      - ErrorEquals:
+          - States.ALL
+        ResultPath: $.ErrorInfo
+        Next: NotificationError
+    Next: ChoiceDuplicate
+  ChoiceDuplicate:
+    Type: Choice
+    Choices:
+      - Variable: $.CheckDataExists
+        BooleanEquals: False
+        Next: RegisterData
+    Default: NotificationExists
+  RegisterData:
+    Type: Task
+    Resource: ${FunctionRegisterDataArn}
+    InputPath: $
+    ResultPath: $.RegisterData
+    OutputPath: $
+    Retry:
+      - ErrorEquals: [ "Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException" ]
+        IntervalSeconds: 2
+        MaxAttempts: 6
+        BackoffRate: 2
+      - ErrorEquals:
+          - Lambda.TooManyRequestsException
+        IntervalSeconds: 30
+        MaxAttempts: 5
+        BackoffRate: 2.0
+    Catch:
+      - ErrorEquals:
+          - States.ALL
+        ResultPath: $.ErrorInfo
+        Next: NotificationError
+    Next: ChangeRichmenu
+  ChangeRichmenu:
+    Type: Task
+    Resource: ${FunctionChangeRichmenuArn}
+    InputPath: $
+    ResultPath: $.ChangeRichmenu
+    OutputPath: $
+    Retry:
+      - ErrorEquals: [ "Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException" ]
+        IntervalSeconds: 2
+        MaxAttempts: 6
+        BackoffRate: 2
+      - ErrorEquals:
+          - Lambda.TooManyRequestsException
+        IntervalSeconds: 30
+        MaxAttempts: 5
+        BackoffRate: 2.0
+    Catch:
+      - ErrorEquals:
+          - States.ALL
+        ResultPath: $.ErrorInfo
+        Next: NotificationError
+    Next: NotificationSuccess
+  NotificationSuccess:
+    Type: Pass
+    InputPath: $
+    Parameters:
+      status: 'success'
+      body1_id: ${body1_id_success}
+      body2_id: ${body2_id_success}
+      body3_id: ${body3_id_success}
+    ResultPath: $.NotificationParameter
+    Next: SendNotification
+  NotificationError:
+    Type: Pass
+    InputPath: $
+    Parameters:
+      status: 'error'
+      body1_id: ${body1_id_error}
+      body2_id: ${body2_id_error}
+      body3_id: ${body3_id_error}
+    ResultPath: $.NotificationParameter
+    Next: SendNotification
+  NotificationExists:
+    Type: Pass
+    InputPath: $
+    Parameters:
+      status: 'exists'
+      body1_id: ${body1_id_exists}
+      body2_id: ${body2_id_exists}
+      body3_id: ${body3_id_exists}
+    ResultPath: $.NotificationParameter
+    Next: SendNotification
+  SendNotification:
+    Type: Task
+    Resource: ${FunctionSendNotificationArn}
+    InputPath: $
+    ResultPath: $.SendNotification
+    OutputPath: $
+    Retry:
+      - ErrorEquals: [ "Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException" ]
+        IntervalSeconds: 2
+        MaxAttempts: 6
+        BackoffRate: 2
+      - ErrorEquals:
+          - Lambda.TooManyRequestsException
+        IntervalSeconds: 30
+        MaxAttempts: 5
+        BackoffRate: 2.0
+    Next: ChoiceEnd
+  ChoiceEnd:
+    Type: Choice
+    Choices:
+      - Variable: $.NotificationParameter.status
+        StringEquals: 'success'
+        Next: Success
+      - Variable: $.NotificationParameter.status
+        StringEquals: 'error'
+        Next: Failed
+    Default: Exists
+  Success:
+    Type: Succeed
+  Failed:
+    Type: Fail
+    Cause: Registration aborted due to error.  
+  Exists:
+    Type: Fail
+    Cause: It was already exists data.  

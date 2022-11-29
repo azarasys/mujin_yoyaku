@@ -2,19 +2,19 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: "Layer for system"
 
- Metadata: 
-   Refs: 
-     LambdaConfig:  &lambda_config 
-       Timeout: 900 
-       Role: !GetAtt RoleCommonLambda.Arn 
+Metadata:
+  Refs:
+    LambdaConfig:  &lambda_config
+      Timeout: 900
+      Role: !GetAtt RoleCommonLambda.Arn
 
- Parameters: 
-  Prefix: 
-    Type: String 
-  Environment: 
-    Type: String 
-    AllowedValues: 
-      - dev 
+Parameters:
+  Prefix:
+    Type: String
+  Environment:
+    Type: String
+    AllowedValues:
+      - dev
       - prd
   MainTableArn:
     Type: String
@@ -26,82 +26,219 @@ Description: "Layer for system"
     Type: String
   RangeKey:
     Type: String
-  Key1:
+  Gsi1Pk:
     Type: String
-  Key2:
+  Gsi2Pk:
     Type: String
-  Key3:
+  Lsi1Sk:
+    Type: String
+  Lsi2Sk:
+    Type: String
+  Lsi3Sk:
+    Type: String
+  Gsi1IndexName:
+    Type: String
+  Gsi2IndexName:
+    Type: String
+  Lsi1IndexName:
+    Type: String
+  Lsi2IndexName:
+    Type: String
+  Lsi3IndexName:
     Type: String
 
-Globals: 
-  Function: 
-    Runtime: python3.9 
-    MemorySize: 128 
-    Timeout: 60 
-    Handler: index.lambda_handler 
-    Layers: 
-      - !Ref LambdaLayer 
-    Environment: 
-      Variables: 
-        ENV: !Ref Environment 
+Globals:
+  Function:
+    Runtime: python3.9
+    MemorySize: 128
+    Timeout: 60
+    Handler: index.lambda_handler
+    Layers:
+      - !Ref LambdaLayer
+    Environment:
+      Variables:
+        ENV: !Ref Environment
         REGION: !Ref AWS::Region
         MAIN_TABLE_NAME: !Ref MainTableName
+        CHANNEL_ID: !Ref ChannelId
         HASH_KEY: !Ref HashKey
         RANGE_KEY: !Ref RangeKey
-        GSI1_PK: !Ref Key1
-        GSI2_PK: !Ref Key2
-        LSI1_SK: !Ref Key3
-        LSI2_SK: !Ref Key2
-        LSI3_SK: !Ref Key1
+        GSI1_PK: !Ref Gsi1Pk
+        GSI2_PK: !Ref Gsi2Pk
+        LSI1_SK: !Ref Lsi1Sk
+        LSI2_SK: !Ref Lsi2Sk
+        LSI3_SK: !Ref Lsi3Sk
+        GSI1_INDEX_NAME: !Ref Gsi1IndexName
+        GSI2_INDEX_NAME: !Ref Gsi2IndexName
+        LSI1_INDEX_NAME: !Ref Lsi1IndexName
+        LSI2_INDEX_NAME: !Ref Lsi2IndexName
+        LSI3_INDEX_NAME: !Ref Lsi3IndexName
 
- Resources: 
-   RoleCommonLambda: 
-     Type: AWS::IAM::Role 
-     Properties: 
-       AssumeRolePolicyDocument: 
-         Version: "2012-10-17" 
-         Statement: 
-           - Effect: "Allow" 
-             Action: "sts:AssumeRole" 
-             Principal: 
-               Service: lambda.amazonaws.com 
-       ManagedPolicyArns: 
-         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
-         - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole 
-       Policies: 
-         - PolicyName: !Sub "${Prefix}-common-lambda-role" 
-           PolicyDocument: 
-             Version: "2012-10-17" 
-             Statement: 
-               - Effect: "Allow" 
-                 Action: 
-                   - secretsmanager:GetSecretValue 
-                 Resource: 
-                   - !Ref SecretRedshiftBisystemArn 
-               - Effect: "Allow" 
-                 Action: 
-                   - sns:Publish 
-                 Resource: 
-                   - !Ref TopicTranUpdateStartArn 
-               - Effect: "Allow" 
-                 Action: 
-                   - dynamodb:GetItem 
-                   - dynamodb:PutItem 
-                   - dynamodb:DeleteItem 
-                   - dynamodb:Query 
-                 Resource: 
-                   - !Ref MainTableArn 
+Resources:
+  RoleCommonLambda:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action: "sts:AssumeRole"
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+      Policies:
+        - PolicyName: !Sub "${Prefix}-common-lambda-role"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                Resource:
+                  - !Ref MainTableArn
 
-  LambdaLayer: 
-    Type: AWS::Serverless::LayerVersion 
-    Properties: 
-      LayerName: !Sub "${Prefix}-layer" 
+  LambdaLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "${Prefix}-layer"
       ContentUri: ../app/layer
-      CompatibleRuntimes: 
+      CompatibleRuntimes:
         - python3.9
-  
-  FunctionRegisterData: 
-     Type: AWS::Serverless::Function 
-     Properties: 
-       FunctionName: !Sub "${Prefix}-register-data" 
-       CodeUri: ../app/lambda/register_data
+
+  FunctionChangeRichmenu:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-change-richmenu"
+        CodeUri: ../app/lambda/change_richmenu
+
+  FunctionCheckDataExists:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-check-data-exists"
+        CodeUri: ../app/lambda/check_data_exists
+
+  FunctionCheckReserveEnd:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-check-reserve-end"
+        CodeUri: ../app/lambda/check_reserve_end
+
+  FunctionDeletePasswordToDevice:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-delete-password-to-device"
+        CodeUri: ../app/lambda/delete_password_to_device
+
+  FunctioGetInputForm:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-get-input-form"
+        CodeUri: ../app/lambda/get_input_form
+
+  FunctionRegisterData:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-register-data"
+        CodeUri: ../app/lambda/register_data
+
+  FunctionRegisterKeypadDevice:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-register-keypad-device"
+        CodeUri: ../app/lambda/register_keypad_device
+
+  FunctionRegisterPasswordToDevice:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-register-password-to-device"
+        CodeUri: ../app/lambda/register_password_to_device
+
+  FunctionUnsubscribeUser:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-unsubscribe-user"
+        CodeUri: ../app/lambda/unsubscribe_user
+
+  FunctionUpdateDataActiveFalse:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-update-data-active-false"
+        CodeUri: ../app/lambda/update_data_active_false
+
+  FunctionSendNotification:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub "${Prefix}-send-notification"
+        CodeUri: ../app/lambda/send_notification
+
+Outputs:
+  FunctionChangeRichmenuArn:
+    Description: FunctionChangeRichmenuArn
+    Value: !GetAtt FunctionChangeRichmenu.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionChangeRichmenuArn
+
+  FunctionCheckDataExistsArn:
+    Description: FunctionCheckDataExistsArn
+    Value: !GetAtt FunctionCheckDataExists.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionCheckDataExistsArn
+
+  FunctionCheckReserveEndArn:
+    Description: FunctionCheckReserveEndArn
+    Value: !GetAtt FunctionCheckReserveEnd.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionCheckReserveEndArn
+
+  FunctionDeletePasswordToDeviceArn:
+    Description: FunctionDeletePasswordToDeviceArn
+    Value: !GetAtt FunctionDeletePasswordToDevice.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionDeletePasswordToDeviceArn
+
+  FunctioGetInputFormArn:
+    Description: FunctioGetInputFormArn
+    Value: !GetAtt FunctioGetInputForm.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctioGetInputFormArn
+
+  FunctionRegisterDataArn:
+    Description: FunctionRegisterDataArn
+    Value: !GetAtt FunctionRegisterData.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionRegisterDataArn
+
+  FunctionRegisterKeypadDeviceArn:
+    Description: FunctionRegisterKeypadDeviceArn
+    Value: !GetAtt FunctionRegisterKeypadDevice.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionRegisterKeypadDeviceArn
+
+  FunctionRegisterPasswordToDeviceArn:
+    Description: FunctionRegisterPasswordToDeviceArn
+    Value: !GetAtt FunctionRegisterPasswordToDevice.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionRegisterPasswordToDeviceArn
+
+  FunctionUnsubscribeUserArn:
+    Description: FunctionUnsubscribeUserArn
+    Value: !GetAtt FunctionUnsubscribeUser.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionUnsubscribeUserArn
+
+  FunctionUpdateDataActiveFalseArn:
+    Description: FunctionUpdateDataActiveFalseArn
+    Value: !GetAtt FunctionUpdateDataActiveFalse.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionUpdateDataActiveFalseArn
+
+  FunctionSendNotificationArn:
+    Description: FunctionSendNotificationArn
+    Value: !GetAtt FunctionSendNotification.Arn
+    Export:
+      Name: !Sub ${Prefix}-FunctionSendNotificationArn
