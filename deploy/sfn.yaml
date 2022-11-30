@@ -19,6 +19,8 @@ Parameters:
     Type: String
   FunctionDeletePasswordToDeviceArn:
     Type: String
+  FunctionUnsubscribeUserArn:
+    Type: String
   
 Mappings:
   Common:
@@ -49,6 +51,16 @@ Mappings:
       Body1IdExists: 106
       Body2IdExists: 206
       Body3IdExists: 306
+      Body1IdError: 105
+      Body2IdError: 205
+      Body3IdError: 305
+    UnsubscribeUser:
+      Body1IdSuccess: 103
+      Body2IdSuccess: 203
+      Body3IdSuccess: 313
+      Body1IdExists: 109
+      Body2IdExists: 209
+      Body3IdExists: 309
       Body1IdError: 105
       Body2IdError: 205
       Body3IdError: 305
@@ -84,6 +96,10 @@ Resources:
               - !Ref FunctionRegisterDataArn
               - !Ref FunctionChangeRichmenuArn
               - !Ref FunctionSendNotificationArn
+              - !Ref FunctionUpdateDataActiveFalseArn
+              - !Ref FunctionRegisterPasswordToDeviceArn
+              - !Ref FunctionDeletePasswordToDeviceArn
+              - !Ref FunctionUnsubscribeUserArn
       Roles:
         - !Ref RoleStateMachineCommon
       PolicyName: !Sub ${Prefix}-policy-statemachine
@@ -167,6 +183,32 @@ Resources:
 
       Type: STANDARD
       Role: !GetAtt RoleStateMachineCommon.Arn
+  
+  StateMachineUnsubscribeUser:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub ${Prefix}-state-unsubscribe-user
+      DefinitionUri: ../app/sfn/unsubscribe_user.yaml
+      DefinitionSubstitutions:
+        # Lambda
+        FunctionCheckDataExistsArn: !Ref FunctionCheckDataExistsArn
+        FunctionUpdateDataArn: !Ref FunctionUnsubscribeUserArn
+        FunctionChangeRichmenuArn: !Ref FunctionChangeRichmenuArn
+        FunctionSendNotificationArn: !Ref FunctionSendNotificationArn
+
+        # Notification
+        body1_id_success: !FindInMap [ Common, UnsubscribeUser, Body1IdSuccess ]
+        body2_id_success: !FindInMap [ Common, UnsubscribeUser, Body2IdSuccess ]
+        body3_id_success: !FindInMap [ Common, UnsubscribeUser, Body3IdSuccess ]
+        body1_id_error: !FindInMap [ Common, UnsubscribeUser, Body1IdError ]
+        body2_id_error: !FindInMap [ Common, UnsubscribeUser, Body2IdError ]
+        body3_id_error: !FindInMap [ Common, UnsubscribeUser, Body3IdError ]
+        body1_id_exists: !FindInMap [ Common, UnsubscribeUser, Body1IdExists ]
+        body2_id_exists: !FindInMap [ Common, UnsubscribeUser, Body2IdExists ]
+        body3_id_exists: !FindInMap [ Common, UnsubscribeUser, Body3IdExists ]
+
+      Type: STANDARD
+      Role: !GetAtt RoleStateMachineCommon.Arn
 
 Outputs:
   StateMachineRegisterUserArn:
@@ -185,3 +227,19 @@ Outputs:
     Value: !GetAtt StateMachineRegisterReserve.Name
     Export:
       Name: !Sub ${Prefix}-StateMachineRegisterReserveName
+  StateMachineCancelReserveArn:
+    Value: !Ref StateMachineCancelReserve
+    Export:
+      Name: !Sub ${Prefix}-StateMachineCancelReserveArn
+  StateMachineCancelReserveName:
+    Value: !GetAtt StateMachineCancelReserve.Name
+    Export:
+      Name: !Sub ${Prefix}-StateMachineCancelReserveName
+  StateMachineUnsubscribeUserArn:
+    Value: !Ref StateMachineUnsubscribeUser
+    Export:
+      Name: !Sub ${Prefix}-StateMachineUnsubscribeUserArn
+  StateMachineUnsubscribeUserName:
+    Value: !GetAtt StateMachineUnsubscribeUser.Name
+    Export:
+      Name: !Sub ${Prefix}-StateMachineUnsubscribeUserName

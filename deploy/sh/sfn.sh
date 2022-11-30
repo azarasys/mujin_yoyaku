@@ -17,6 +17,7 @@ FunctionRegisterDataArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionRegisterDataA
 FunctionUpdateDataActiveFalseArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionUpdateDataActiveFalseArn"') \
 FunctionRegisterPasswordToDeviceArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionRegisterPasswordToDeviceArn"') \
 FunctionDeletePasswordToDeviceArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionDeletePasswordToDeviceArn"') \
+FunctionUnsubscribeUserArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionUnsubscribeUserArn"') \
 FunctionChangeRichmenuArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionChangeRichmenuArn"') \
 FunctionSendNotificationArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionSendNotificationArn"') \
 " 

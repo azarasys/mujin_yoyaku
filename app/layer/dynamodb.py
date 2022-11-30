@@ -1,7 +1,8 @@
 import boto3
+import calendar
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from boto3.dynamodb.conditions import Key
 
 logger = logging.getLogger()
@@ -269,10 +270,16 @@ def update_active_false(channel_id:str, key: str) -> bool:
     '''データを活性フラグをオフにする
     '''
     table = dynamodb.Table(MAIN_TABLE_NAME)
+    dt = datetime.now() + timedelta(hours=9)
+    last_day = calendar.monthrange(dt.year, dt.month)[1]
+    end_at = dt.replace(day=last_day, hour=23, minute=59, second=59)
     options = {
         'Key': {HASH_KEY: channel_id, RANGE_KEY: key},
-        'UpdateExpression': 'set active = :active',
-        'ExpressionAttributeValues': {':active': False},
+        'UpdateExpression': 'set active = :active, end_at = :end_at',
+        'ExpressionAttributeValues': {
+            ':active': False,
+            ':end_at': end_at.strftime(DATE_TIME_FORMAT)
+        },
         'ReturnValues': 'UPDATED_NEW'
     }
     try:
