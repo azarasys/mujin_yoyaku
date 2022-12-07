@@ -160,13 +160,24 @@ def get_devices_by_channel_type(channel_id: str, device_type: str) -> list[dict]
 def get_device_by_channel_room(channel_id: str, room_name: str) -> list[dict]:
     '''LINEチャネル内の特定の部屋のデバイス情報取得
     '''
+    return get_data_by_pk_sk_beginwith(
+        table_name=MAIN_TABLE_NAME,
+        pk_column=HASH_KEY,
+        pk_value=channel_id,
+        sk_column=RANGE_KEY,
+        sk_value=f'{KEY_PREFIX_DEVICE}_{room_name}_'
+    )
+
+
+def get_device_by_channel_device(channel_id: str, device_name: str) -> list[dict]:
+    '''LINEチャネル内の特定の部屋の特定のデバイス情報取得
+    '''
     return get_data_by_pk_sk(
         table_name=MAIN_TABLE_NAME,
         pk_column=HASH_KEY,
         pk_value=channel_id,
-        sk_column=LSI3_SK,
-        sk_value=room_name,
-        index=LSI3_INDEX_NAME
+        sk_column=RANGE_KEY,
+        sk_value=f'{KEY_PREFIX_DEVICE}_{device_name}'
     )
 
 def get_user_by_id(channel_id: str, line_id: str) -> dict:

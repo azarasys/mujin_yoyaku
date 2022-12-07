@@ -1,0 +1,47 @@
+{
+    "size": {
+        "width": 800,
+        "height": 270
+    },
+    "selected": false,
+    "name": "temp user richmenu",
+    "chatBarText": "仮会員メニュー",
+    "areas": [
+        {
+            "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 266,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "REGISTER_URL"
+            }
+        },
+        {
+            "bounds": {
+                "x": 267,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "GUIDANCE_URL"
+            }
+        },
+        {
+            "bounds": {
+                "x": 533,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "YOUTUBE_URL"
+            }
+        }
+   ]
+}

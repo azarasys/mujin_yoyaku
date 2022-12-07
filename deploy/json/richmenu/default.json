@@ -1,0 +1,47 @@
+{
+    "size": {
+        "width": 800,
+        "height": 270
+    },
+    "selected": true,
+    "name": "default richmenu",
+    "chatBarText": "メニュー",
+    "areas": [
+        {
+            "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 266,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "TEMP_https://dev-123456789-mujinyoyaku-config/register.html"
+            }
+        },
+        {
+            "bounds": {
+                "x": 267,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "https://dev-123456789-mujinyoyaku-config/guidance.html"
+            }
+        },
+        {
+            "bounds": {
+                "x": 533,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "https://youtu.be/Xb_LZqhGwww"
+            }
+        }
+   ]
+}

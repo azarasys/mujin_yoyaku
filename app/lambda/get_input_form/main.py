@@ -58,6 +58,10 @@ def get_input_form_value(event: dict):
         event['key'] = f"user_{event['line_id']}",
     elif event['type'] == 'cancel':
         event['key'] = f"reserve_{event['line_id']}"
+    elif event['type'] == 'keypad':
+        event['key'] = f"device_{event['keypad_name']}"
+    elif event['type'] == 'del_keypad':
+        event['key'] = f"device_{event['keypad_name']}"
 
     return event
 

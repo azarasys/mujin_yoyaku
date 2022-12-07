@@ -6,6 +6,7 @@ cd $(dirname $0)/../../
 
 TARGET_TEMPLATE=$(basename $0 | sed 's/\.sh$/\.yaml/')
 
+source ./param/secrets.sh
 source ./param/environment.sh
 source ./deploy/sh/common.sh $*
 

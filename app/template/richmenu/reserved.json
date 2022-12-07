@@ -1,0 +1,47 @@
+{
+    "size": {
+        "width": 800,
+        "height": 270
+    },
+    "selected": false,
+    "name": "reserved richmenu",
+    "chatBarText": "予約済みメニュー",
+    "areas": [
+        {
+            "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 266,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "RESERVED_URL"
+            }
+        },
+        {
+            "bounds": {
+                "x": 267,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "INFORMATION_URL"
+            }
+        },
+        {
+            "bounds": {
+                "x": 533,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "INQUIRY_URL"
+            }
+        }
+   ]
+}

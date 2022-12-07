@@ -21,6 +21,8 @@ Parameters:
     Type: String
   FunctionUnsubscribeUserArn:
     Type: String
+  FunctionRegisterKeypadDeviceArn:
+    Type: String
   
 Mappings:
   Common:
@@ -61,6 +63,29 @@ Mappings:
       Body1IdExists: 109
       Body2IdExists: 209
       Body3IdExists: 309
+      Body1IdError: 105
+      Body2IdError: 205
+      Body3IdError: 305
+    RegisterKeypad:
+      Body1IdSuccess: 110
+      Body2IdSuccess: 211
+      Body3IdSuccess: 312
+      Body1IdExists: 111
+      Body2IdExists: 211
+      Body3IdExists: 311
+      Body1IdError: 105
+      Body2IdError: 205
+      Body3IdError: 305
+      Body1IdNotFound: 401
+      Body2IdNotFound: 501
+      Body3IdNotFound: 601
+    DeleteKeypad:
+      Body1IdSuccess: 110
+      Body2IdSuccess: 211
+      Body3IdSuccess: 312
+      Body1IdExists: 401
+      Body2IdExists: 501
+      Body3IdExists: 601
       Body1IdError: 105
       Body2IdError: 205
       Body3IdError: 305
@@ -209,6 +234,61 @@ Resources:
 
       Type: STANDARD
       Role: !GetAtt RoleStateMachineCommon.Arn
+  
+  StateMachineRegisterKeypad:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub ${Prefix}-state-register-keypad
+      DefinitionUri: ../app/sfn/register_keypad.yaml
+      DefinitionSubstitutions:
+        # Lambda
+        FunctionCheckDataExistsArn: !Ref FunctionCheckDataExistsArn
+        FunctionRegisterDataArn: !Ref FunctionRegisterKeypadDeviceArn
+        FunctionChangeRichmenuArn: !Ref FunctionChangeRichmenuArn
+        FunctionSendNotificationArn: !Ref FunctionSendNotificationArn
+
+        # Notification
+        body1_id_success: !FindInMap [ Common, RegisterKeypad, Body1IdSuccess ]
+        body2_id_success: !FindInMap [ Common, RegisterKeypad, Body2IdSuccess ]
+        body3_id_success: !FindInMap [ Common, RegisterKeypad, Body3IdSuccess ]
+        body1_id_error: !FindInMap [ Common, RegisterKeypad, Body1IdError ]
+        body2_id_error: !FindInMap [ Common, RegisterKeypad, Body2IdError ]
+        body3_id_error: !FindInMap [ Common, RegisterKeypad, Body3IdError ]
+        body1_id_exists: !FindInMap [ Common, RegisterKeypad, Body1IdExists ]
+        body2_id_exists: !FindInMap [ Common, RegisterKeypad, Body2IdExists ]
+        body3_id_exists: !FindInMap [ Common, RegisterKeypad, Body3IdExists ]
+        body1_id_not_found: !FindInMap [ Common, RegisterKeypad, Body1IdNotFound ]
+        body2_id_not_found: !FindInMap [ Common, RegisterKeypad, Body2IdNotFound ]
+        body3_id_not_found: !FindInMap [ Common, RegisterKeypad, Body3IdNotFound ]
+
+      Type: STANDARD
+      Role: !GetAtt RoleStateMachineCommon.Arn
+  
+  StateMachineDeleteKeypad:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub ${Prefix}-state-delete-keypad
+      DefinitionUri: ../app/sfn/delete_keypad.yaml
+      DefinitionSubstitutions:
+        # Lambda
+        FunctionCheckDataExistsArn: !Ref FunctionCheckDataExistsArn
+        FunctionUpdateDataArn: !Ref FunctionUpdateDataActiveFalseArn
+        FunctionChangeRichmenuArn: !Ref FunctionChangeRichmenuArn
+        FunctionSendNotificationArn: !Ref FunctionSendNotificationArn
+
+        # Notification
+        body1_id_success: !FindInMap [ Common, DeleteKeypad, Body1IdSuccess ]
+        body2_id_success: !FindInMap [ Common, DeleteKeypad, Body2IdSuccess ]
+        body3_id_success: !FindInMap [ Common, DeleteKeypad, Body3IdSuccess ]
+        body1_id_error: !FindInMap [ Common, DeleteKeypad, Body1IdError ]
+        body2_id_error: !FindInMap [ Common, DeleteKeypad, Body2IdError ]
+        body3_id_error: !FindInMap [ Common, DeleteKeypad, Body3IdError ]
+        body1_id_exists: !FindInMap [ Common, DeleteKeypad, Body1IdExists ]
+        body2_id_exists: !FindInMap [ Common, DeleteKeypad, Body2IdExists ]
+        body3_id_exists: !FindInMap [ Common, DeleteKeypad, Body3IdExists ]
+
+      Type: STANDARD
+      Role: !GetAtt RoleStateMachineCommon.Arn
 
 Outputs:
   StateMachineRegisterUserArn:
@@ -243,3 +323,19 @@ Outputs:
     Value: !GetAtt StateMachineUnsubscribeUser.Name
     Export:
       Name: !Sub ${Prefix}-StateMachineUnsubscribeUserName
+  StateMachineRegisterKeypadArn:
+    Value: !Ref StateMachineRegisterKeypad
+    Export:
+      Name: !Sub ${Prefix}-StateMachineRegisterKeypadArn
+  StateMachineRegisterKeypadName:
+    Value: !GetAtt StateMachineRegisterKeypad.Name
+    Export:
+      Name: !Sub ${Prefix}-StateMachineRegisterKeypadName
+  StateMachineDeleteKeypadArn:
+    Value: !Ref StateMachineDeleteKeypad
+    Export:
+      Name: !Sub ${Prefix}-StateMachineDeleteKeypadArn
+  StateMachineDeleteKeypadName:
+    Value: !GetAtt StateMachineDeleteKeypad.Name
+    Export:
+      Name: !Sub ${Prefix}-StateMachineDeleteKeypadName

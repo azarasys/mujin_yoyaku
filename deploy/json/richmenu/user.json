@@ -1,0 +1,47 @@
+{
+    "size": {
+        "width": 800,
+        "height": 270
+    },
+    "selected": false,
+    "name": "user richmenu",
+    "chatBarText": "会員メニュー",
+    "areas": [
+        {
+            "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 266,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "https://dev-123456789-mujinyoyaku-config/reserve.html"
+            }
+        },
+        {
+            "bounds": {
+                "x": 267,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "https://dev-123456789-mujinyoyaku-config/information.html"
+            }
+        },
+        {
+            "bounds": {
+                "x": 533,
+                "y": 0,
+                "width": 267,
+                "height": 270
+            },
+            "action": {
+                "type": "uri",
+                "uri": "https://youtu.be/Xb_LZqhGwww"
+            }
+        }
+   ]
+}

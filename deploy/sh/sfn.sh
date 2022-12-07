@@ -6,6 +6,7 @@ cd $(dirname $0)/../../
 
 TARGET_TEMPLATE=$(basename $0 | sed 's/\.sh$/\.yaml/')
 
+source ./param/secrets.sh
 source ./param/environment.sh 
 source ./deploy/sh/common.sh $* 
 
@@ -15,6 +16,7 @@ Environment=$ENV \
 FunctionCheckDataExistsArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionCheckDataExistsArn"') \
 FunctionRegisterDataArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionRegisterDataArn"') \
 FunctionUpdateDataActiveFalseArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionUpdateDataActiveFalseArn"') \
+FunctionRegisterKeypadDeviceArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionRegisterKeypadDeviceArn"') \
 FunctionRegisterPasswordToDeviceArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionRegisterPasswordToDeviceArn"') \
 FunctionDeletePasswordToDeviceArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionDeletePasswordToDeviceArn"') \
 FunctionUnsubscribeUserArn=$(cat $EXPORT | jq -r '."'$PREFIX'-FunctionUnsubscribeUserArn"') \

@@ -8,6 +8,7 @@ import uuid
 
 from layer.secrets_manager import get_secret
 from layer.dynamodb import put_data
+from layer.exception import ExceptionTerminated
 
 # 環境変数
 MAIN_TABLE_NAME = os.environ['MAIN_TABLE_NAME']
@@ -45,17 +46,18 @@ def lambda_handler(event, context):
     channel_id = data['channle_id']
     room_name = data['room_name']
     keypad_name = data['keypad_name']
+    key = data['key']
     device_list = get_device_list(channel_id)
 
     if not device_list:
-        raise Exception(f'Could not find devices. {channel_id=}')
+        raise ExceptionTerminated(f'Could not find devices. {channel_id=}')
 
     for device in device_list:
         if device['Nmae'] == keypad_name and 'Keypad' in device['deviceType']:
             device_id = device['deviceId']
             item = {
                 'channel_id': channel_id,
-                'key': f'device_{room_name}_{device_id}',
+                'key': key,
                 'device_id': device_id,
                 'type': device['deviceType'],
                 'active': True
@@ -64,7 +66,9 @@ def lambda_handler(event, context):
                 table_name=MAIN_TABLE_NAME,
                 item=item
             )
-            print(f'register device keypad. evice_{room_name}_{device_id}')
+            print(f'register device keypad. {keypad_name}')
             break
+    else:
+        raise ExceptionTerminated(f'Could not find keypad. {keypad_name}')
     
     return True

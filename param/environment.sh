@@ -2,6 +2,7 @@ SYSTEM_VERSION=1.0.0
 CHANNEL_NAME=test
 CHANNEL_ID=123456789
 SYSTEM_NAME=mujinyoyaku
+YOUTUBE_URL=https://youtube/
 
 # DynamoDB Keys
 HASH_KEY=channel_id
